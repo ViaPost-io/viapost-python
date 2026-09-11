@@ -167,7 +167,7 @@ class SyncHTTPClient:
         request_headers = httpx.Headers(headers)
         request_headers["Authorization"] = f"Bearer {self.config.api_key}"
         request_headers["Accept"] = "application/json"
-        request_headers["User-Agent"] = "viapost-python/0.1.1"
+        request_headers["User-Agent"] = "viapost-python/0.1.2"
         effective_timeout = _effective_timeout(self.config, timeout)
         json_body: object | None = body
         attempt = 0
@@ -222,7 +222,7 @@ class AsyncHTTPClient:
         request_headers = httpx.Headers(headers)
         request_headers["Authorization"] = f"Bearer {self.config.api_key}"
         request_headers["Accept"] = "application/json"
-        request_headers["User-Agent"] = "viapost-python/0.1.1"
+        request_headers["User-Agent"] = "viapost-python/0.1.2"
         effective_timeout = _effective_timeout(self.config, timeout)
         json_body: object | None = body
         attempt = 0
