@@ -47,7 +47,7 @@ jobs:
       - name: Audit hash-locked release toolchain
         run: pip-audit --require-hashes --requirement .github/requirements/release.txt
       - name: Install the SDK without resolving unpinned dependencies
-        run: python -m pip install --no-deps --no-build-isolation -e .
+        run: python -m pip install --no-deps --no-build-isolation .
       - name: Verify release tag
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
