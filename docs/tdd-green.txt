@@ -1,0 +1,41 @@
+Final Green evidence — 2026-09-11
+
+Commands:
+  .venv/bin/ruff check .
+  .venv/bin/ruff format --check .
+  .venv/bin/mypy
+  .venv/bin/pytest --cov=viapost --cov-report=term-missing
+  .venv/bin/python scripts/check_contract.py
+  .venv/bin/python scripts/check_release_tag.py v0.1.0
+  .venv/bin/pip-audit --requirement requirements/runtime.txt
+  .venv/bin/python -m build --no-isolation
+  .venv/bin/twine check dist/*
+
+Results:
+  Ruff lint: PASS
+  Ruff format: PASS (19 files)
+  mypy strict: PASS (13 source files)
+  pytest: PASS (50 tests)
+  line/branch coverage: 95.88% (required >=90%)
+  published OpenAPI semantic drift check: PASS
+  release tag/version check: PASS
+  runtime-only dependency audit: PASS (no known vulnerabilities)
+  wheel build: PASS (viapost-0.1.0-py3-none-any.whl)
+  sdist build: PASS (viapost-0.1.0.tar.gz)
+  twine check: PASS (wheel and sdist)
+  hash-locked release toolchain install in a clean venv: PASS
+  isolated wheel installation and import: PASS
+  workflow YAML parse: PASS
+
+Correction-focused Green behaviors include concrete non-Any public return types, exact required
+TypedDict keys, transport errors with both `__cause__` and `__context__` cleared, visible-ASCII API and
+idempotency keys, case-insensitive protected headers, redirect refusal, typed 1xx/3xx errors, and
+decoded response-size enforcement for compressed payloads.
+
+The release artifact gate also verifies build/twine → checksums → read-only artifacts → immutable
+artifact upload → copied-wheel consumer test. Consumer runtime dependencies come only from the
+complete hash lock, and the wheel is installed with `--no-deps` before checksums are reverified.
+The release toolchain pins `pip==26.2.1`, passes `pip-audit --require-hashes`, and the optional PyPI
+job waits for both GitHub Release attachment and provenance attestation.
+
+Initial and reviewer-correction Red evidence is in docs/tdd-red.txt.

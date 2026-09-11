@@ -1,0 +1,62 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.6, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/valdinei/Projects/viapost-python
+configfile: pyproject.toml
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.15.1, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+____________________ ERROR collecting tests/test_client.py _____________________
+ImportError while importing test module '/Users/valdinei/Projects/viapost-python/tests/test_client.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/homebrew/Cellar/python@3.12/3.12.6/Frameworks/Python.framework/Versions/3.12/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_client.py:5: in <module>
+    from viapost import ViaPost
+E   ModuleNotFoundError: No module named 'viapost'
+=========================== short test summary info ============================
+ERROR tests/test_client.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.07s ===============================
+
+Reviewer correction Red evidence — 2026-09-11
+
+New tests were added before the security and typing corrections. The first focused run failed
+during collection because the OpenAPI-derived request/response types were not yet exported. After
+the type surface was introduced, the required-field test still failed because
+`UpdateAutomationDraftRequest.__required_keys__` was empty instead of `{graph}`. The transport tests
+also initially demonstrated that caller-provided lowercase headers could replace Authorization and
+that `ViaPostConnectionError` retained the originating `httpx.RequestError`.
+
+Security re-gate Red evidence — 2026-09-11
+
+Command:
+  .venv/bin/pytest tests/test_http.py -q --disable-warnings --maxfail=2
+
+Result:
+  2 failed, 3 passed before early stop. Both sync timeout and connection errors had
+  `__cause__ is None` but retained the raw `httpx.RequestError` in `__context__`, reproducing access
+  to the authenticated request. Equivalent async assertions were added in the same Red cycle.
+
+Release artifact re-gate Red evidence — 2026-09-11
+
+Command:
+  .venv/bin/pytest tests/test_workflows.py -q --disable-warnings
+
+Result:
+  1 failed. The release workflow had no read-only artifact step and installed the wheel before
+  creating checksums. A stricter follow-up Red also demonstrated that artifact upload still
+  occurred after consumer dependency installation instead of sealing the uploaded artifact first.
+
+Final release re-gate Red evidence — 2026-09-11
+
+Command:
+  .venv/bin/pytest tests/test_workflows.py -q --disable-warnings --maxfail=1
+
+Result:
+  1 failed, 1 passed. The release had no hash-aware audit of its toolchain, still pinned vulnerable
+  `pip==25.3`, and allowed the opt-in PyPI job to run in parallel with GitHub asset attachment and
+  provenance attestation.
