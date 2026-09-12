@@ -57,6 +57,13 @@ def test_release_toolchain_is_audited_and_pypi_runs_last() -> None:
     assert "pip==26.2.1" in release_lock
     assert "pip==25.3" not in release_lock
 
+    attach_step = next(
+        step
+        for step in jobs["attach-to-github-release"]["steps"]
+        if step.get("name") == "Attach installable packages and checksums"
+    )
+    assert attach_step["env"]["GH_REPO"] == "${{ github.repository }}"
+
 
 def test_release_build_requires_head_to_match_the_exact_tag() -> None:
     workflow = yaml.safe_load(Path(".github/workflows/release.yml").read_text())

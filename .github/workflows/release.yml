@@ -24,12 +24,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pip
@@ -47,7 +47,7 @@ jobs:
       - name: Audit hash-locked release toolchain
         run: pip-audit --require-hashes --requirement .github/requirements/release.txt
       - name: Install the SDK without resolving unpinned dependencies
-        run: python -m pip install --no-deps --no-build-isolation -e .
+        run: python -m pip install --no-deps --no-build-isolation .
       - name: Verify release tag
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
@@ -68,13 +68,13 @@ jobs:
           sha256sum * > ../checksums/SHA256SUMS
       - name: Make built distributions read-only
         run: chmod -R a-w dist checksums
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: python-distributions
           path: dist/*
           if-no-files-found: error
           retention-days: 1
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: distribution-checksums
           path: checksums/SHA256SUMS
@@ -98,17 +98,18 @@ jobs:
       actions: read
       contents: write
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: python-distributions
           path: dist
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: distribution-checksums
           path: checksums
       - name: Attach installable packages and checksums
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: gh release upload "$RELEASE_TAG" dist/* checksums/SHA256SUMS --clobber
 
@@ -121,7 +122,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: python-distributions
           path: dist
@@ -141,7 +142,7 @@ jobs:
       actions: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: python-distributions
           path: dist

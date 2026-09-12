@@ -12,7 +12,7 @@ GitHub Releases is the primary distribution channel. Install the exact wheel att
 / GitHub Releases é o canal principal de distribuição. Instale o wheel exato anexado à release:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.1.1/viapost-0.1.1-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.1.3/viapost-0.1.3-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -22,7 +22,7 @@ no PyPI:
 pip install viapost
 ```
 
-The release also includes the source distribution (`viapost-0.1.1.tar.gz`) and checksums. The wheel
+The release also includes the source distribution (`viapost-0.1.3.tar.gz`) and checksums. The wheel
 is preferred because installation does not need to execute a build backend. GitHub also records
 build provenance attestations for both artifacts.
 
