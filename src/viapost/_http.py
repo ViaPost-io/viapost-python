@@ -141,9 +141,7 @@ def _extract_sensitive_values(value: object, *, field: str | None = None) -> set
             }
         if isinstance(value, (list, tuple)):
             return {
-                item
-                for nested in value
-                for item in _extract_sensitive_values(nested, field=field)
+                item for nested in value for item in _extract_sensitive_values(nested, field=field)
             }
         return set()
     if isinstance(value, Mapping):
