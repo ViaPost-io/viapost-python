@@ -5,7 +5,8 @@ from __future__ import annotations
 from importlib.resources import files
 from pathlib import Path
 
-OPENAPI_SHA256 = "d1f223342ad1ca326ba716af6e508c78594e1b108958cce2ec4a1efd31a9773a"
+OPENAPI_SOURCE_URL = "https://docs.viapost.io/openapi/public.yaml"
+OPENAPI_SHA256 = "f1b1fc0f198a2b0b36f0e893515dad191d6bb7d139fcf1e942c036bfa2f5169b"
 
 
 def openapi_path() -> Path:

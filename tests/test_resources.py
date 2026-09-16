@@ -23,6 +23,25 @@ from viapost import (
 )
 
 
+def _created_webhook() -> dict[str, object]:
+    return {
+        "endpoint": {
+            "id": "w",
+            "url": "https://example.com/hook",
+            "event_types": ["delivered"],
+            "enabled": True,
+            "max_attempts": 8,
+            "consecutive_failures": 0,
+            "disabled_at": None,
+            "secret_rotated_at": None,
+            "version": 1,
+            "created_at": "2026-09-16T00:00:00Z",
+            "updated_at": "2026-09-16T00:00:00Z",
+        },
+        "secret": "one-time-secret",
+    }
+
+
 def test_send_forwards_idempotency_key_normalizes_lists_and_never_retries_post() -> None:
     attempts: list[httpx.Request] = []
 
@@ -108,7 +127,7 @@ def test_send_rejects_unsafe_idempotency_keys_before_network(key: object) -> Non
             "at most 100",
         ),
         ("send", {"from": "a", "to": ["b"], "attachments": [{}] * 11}, "at most 10"),
-        ("webhooks", {"url": "file:///tmp/hook", "event_types": ["delivered"]}, "HTTP\\(S\\)"),
+        ("webhooks", {"url": "file:///tmp/hook", "event_types": ["delivered"]}, "HTTPS"),
         ("webhooks", {"url": "https://example.com/hook", "event_types": []}, "at least one"),
     ],
 )
@@ -195,6 +214,8 @@ def test_public_resource_methods_never_return_any() -> None:
         for resource_name in (
             "send",
             "messages",
+            "inbound_messages",
+            "suppressions",
             "domains",
             "templates",
             "webhooks",
@@ -215,6 +236,8 @@ def test_sync_resources_cover_the_public_node_sdk_surface() -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         observed.append((request.method, request.url.path))
+        if request.method == "POST" and request.url.path == "/v1/webhooks":
+            return httpx.Response(200, json=_created_webhook())
         return httpx.Response(200, json={})
 
     with ViaPost(api_key="vp_test", transport=httpx.MockTransport(handler)) as client:
@@ -306,6 +329,8 @@ def test_sync_resources_cover_the_public_node_sdk_surface() -> None:
 @pytest.mark.asyncio
 async def test_async_resources_match_sync_resource_methods() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/v1/webhooks":
+            return httpx.Response(200, json=_created_webhook())
         return httpx.Response(200, json={"accepted": [], "rejected": []})
 
     sync = ViaPost(api_key="vp_test", transport=httpx.MockTransport(lambda r: httpx.Response(200)))
@@ -315,6 +340,8 @@ async def test_async_resources_match_sync_resource_methods() -> None:
         resource_names = (
             "send",
             "messages",
+            "inbound_messages",
+            "suppressions",
             "domains",
             "templates",
             "webhooks",

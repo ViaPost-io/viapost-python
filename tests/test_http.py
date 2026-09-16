@@ -32,7 +32,7 @@ def test_sync_request_sends_auth_query_headers_and_default_timeout() -> None:
     assert isinstance(request, httpx.Request)
     assert request.headers["Authorization"] == "Bearer vp_test"
     assert request.headers["Accept"] == "application/json"
-    assert request.headers["User-Agent"] == "viapost-python/0.1.3"
+    assert request.headers["User-Agent"] == "viapost-python/0.2.0"
     assert request.url.params.get_list("status") == ["queued", "sent"]
     assert request.url.params["page"] == "2"
     assert "none" not in request.url.params
@@ -152,7 +152,99 @@ def test_protected_headers_cannot_be_overridden() -> None:
 
     assert observed[0].headers["Authorization"] == "Bearer real-key"
     assert observed[0].headers["Accept"] == "application/json"
-    assert observed[0].headers["User-Agent"] == "viapost-python/0.1.3"
+    assert observed[0].headers["User-Agent"] == "viapost-python/0.2.0"
+
+
+def test_api_error_redacts_echoed_credentials_and_sensitive_fields() -> None:
+    api_key = "vp_live_do-not-log"
+    body = {
+        "error": {
+            "message": f"invalid credential {api_key}",
+            "details": {
+                "api_key": api_key,
+                "secret": "whsec-do-not-log",
+                "nested": [{"access_token": "token-do-not-log"}],
+                "safe": "validation failed",
+            },
+        }
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            401,
+            json=body,
+            headers={"set-cookie": "session=do-not-log", "x-debug": api_key},
+        )
+
+    with (
+        ViaPost(api_key=api_key, transport=httpx.MockTransport(handler)) as client,
+        pytest.raises(ViaPostAPIError) as caught,
+    ):
+        client.messages.list()
+
+    rendered = (
+        repr(caught.value)
+        + str(caught.value)
+        + repr(caught.value.body)
+        + repr(caught.value.headers)
+    )
+    for secret in (api_key, "whsec-do-not-log", "token-do-not-log", "session=do-not-log"):
+        assert secret not in rendered
+    assert caught.value.body["error"]["details"]["safe"] == "validation failed"  # type: ignore[index]
+
+
+def test_api_error_redacts_repeated_sensitive_values_from_message_and_debug() -> None:
+    repeated = "sensitive-value-repeated-in-diagnostic-text"
+    body = {
+        "error": {
+            "message": f"request denied; token={repeated}; retry token={repeated}",
+            "debug": f"secret={repeated}; api_key={repeated}",
+            "details": {"access_token": repeated},
+        }
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json=body)
+
+    with (
+        ViaPost(api_key="vp_test", transport=httpx.MockTransport(handler)) as client,
+        pytest.raises(ViaPostAPIError) as caught,
+    ):
+        client.messages.list()
+
+    rendered = repr(caught.value) + str(caught.value) + repr(caught.value.body)
+    assert repeated not in rendered
+    assert "<redacted>" in str(caught.value)
+
+
+def test_raw_response_uses_independent_40_mib_default_limit() -> None:
+    payload = b"x" * (10 * 1024 * 1024 + 1)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=payload)
+
+    with ViaPost(api_key="vp_test", transport=httpx.MockTransport(handler)) as client:
+        assert client._config.max_raw_response_bytes == 40 * 1024 * 1024
+        assert client.messages.raw("large") == payload
+
+
+def test_raw_response_limit_is_configurable_without_raising_json_error_limit() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/raw"):
+            return httpx.Response(200, content=b"123456")
+        return httpx.Response(403, json={"error": {"message": "no"}})
+
+    with ViaPost(
+        api_key="vp_test",
+        max_response_bytes=64,
+        max_raw_response_bytes=5,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ViaPostResponseTooLargeError) as caught:
+            client.messages.raw("large")
+        assert caught.value.max_response_bytes == 5
+        with pytest.raises(ViaPostAPIError, match="no"):
+            client.messages.list()
 
 
 @pytest.mark.parametrize("status", [103, 302])

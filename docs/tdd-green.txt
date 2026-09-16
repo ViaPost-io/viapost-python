@@ -39,3 +39,38 @@ The release toolchain pins `pip==26.2.1`, passes `pip-audit --require-hashes`, a
 job waits for both GitHub Release attachment and provenance attestation.
 
 Initial and reviewer-correction Red evidence is in docs/tdd-red.txt.
+
+OpenAPI synchronization Green evidence — 2026-09-16
+
+Commands:
+  .venv/bin/ruff check .
+  .venv/bin/ruff format --check .
+  .venv/bin/mypy
+  .venv/bin/pytest --cov=viapost --cov-report=term-missing
+  .venv/bin/python scripts/check_contract.py --source https://docs.viapost.io/openapi/public.yaml
+  .venv/bin/python scripts/check_release_tag.py v0.2.0
+  .venv/bin/python -m build
+  .venv/bin/twine check dist/*
+  .venv/bin/pip-audit --requirement requirements/runtime.txt
+
+Results:
+  Ruff lint/format and strict mypy: PASS
+  pytest: PASS (77 tests, 94.96% coverage; required >=90%)
+  public OpenAPI semantic drift check: PASS
+  v0.2.0 tag/version check: PASS
+  wheel and sdist build plus Twine validation: PASS
+  runtime dependency audit: PASS (no known vulnerabilities)
+  isolated v0.2.0 wheel install, version, types, snapshot hash, and source metadata: PASS
+
+Security and release re-gate — 2026-09-16
+
+Commands:
+  .venv/bin/ruff check .
+  .venv/bin/ruff format --check .
+  .venv/bin/mypy
+  .venv/bin/pytest --cov=viapost --cov-report=term-missing
+
+Results:
+  ruff: PASS
+  mypy: PASS
+  pytest: 111 passed; 94.78% coverage

@@ -9,21 +9,52 @@ from urllib.parse import urlsplit, urlunsplit
 
 DEFAULT_BASE_URL = "https://api.viapost.io"
 DEFAULT_TIMEOUT = 60.0
-DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+DEFAULT_MAX_RAW_RESPONSE_BYTES = 40 * 1024 * 1024
+MAX_RAW_RESPONSE_BYTES = 64 * 1024 * 1024
 DEFAULT_MAX_RETRIES = 2
 DEFAULT_BASE_DELAY = 0.25
 DEFAULT_MAX_DELAY = 30.0
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class ClientConfig:
     api_key: str
     base_url: str
     timeout: float
     max_response_bytes: int
+    max_raw_response_bytes: int
     max_retries: int
     base_delay: float
     max_delay: float
+
+    def __repr__(self) -> str:
+        return (
+            "ClientConfig(api_key='<redacted>', "
+            f"base_url={self.base_url!r}, timeout={self.timeout!r}, "
+            f"max_response_bytes={self.max_response_bytes!r}, "
+            f"max_raw_response_bytes={self.max_raw_response_bytes!r}, "
+            f"max_retries={self.max_retries!r}, base_delay={self.base_delay!r}, "
+            f"max_delay={self.max_delay!r})"
+        )
+
+    def __reduce__(self) -> tuple[object, tuple[object, ...]]:
+        """Serialize configuration without persisting reusable credentials."""
+
+        return (
+            ClientConfig,
+            (
+                "<redacted>",
+                self.base_url,
+                self.timeout,
+                self.max_response_bytes,
+                self.max_raw_response_bytes,
+                self.max_retries,
+                self.base_delay,
+                self.max_delay,
+            ),
+        )
 
 
 def make_config(
@@ -32,6 +63,7 @@ def make_config(
     base_url: str,
     timeout: float,
     max_response_bytes: int,
+    max_raw_response_bytes: int,
     max_retries: int,
     base_delay: float,
     max_delay: float,
@@ -56,6 +88,16 @@ def make_config(
         or max_response_bytes <= 0
     ):
         raise ValueError("max_response_bytes must be positive")
+    if max_response_bytes > MAX_RESPONSE_BYTES:
+        raise ValueError("max_response_bytes must be at most 8 MiB")
+    if (
+        not isinstance(max_raw_response_bytes, int)
+        or isinstance(max_raw_response_bytes, bool)
+        or max_raw_response_bytes <= 0
+    ):
+        raise ValueError("max_raw_response_bytes must be positive")
+    if max_raw_response_bytes > MAX_RAW_RESPONSE_BYTES:
+        raise ValueError("max_raw_response_bytes must be at most 64 MiB")
     if not isinstance(max_retries, int) or isinstance(max_retries, bool) or max_retries < 0:
         raise ValueError("max_retries must be non-negative")
     if (
@@ -74,6 +116,7 @@ def make_config(
         normalize_base_url(base_url),
         float(timeout),
         max_response_bytes,
+        max_raw_response_bytes,
         max_retries,
         float(base_delay),
         float(max_delay),
