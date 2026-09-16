@@ -12,7 +12,7 @@ GitHub Releases is the primary distribution channel. Install the exact wheel att
 / GitHub Releases é o canal principal de distribuição. Instale o wheel exato anexado à release:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.1.3/viapost-0.1.3-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.2.0/viapost-0.2.0-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -22,7 +22,7 @@ no PyPI:
 pip install viapost
 ```
 
-The release also includes the source distribution (`viapost-0.1.3.tar.gz`) and checksums. The wheel
+The release also includes the source distribution (`viapost-0.2.0.tar.gz`) and checksums. The wheel
 is preferred because installation does not need to execute a build backend. GitHub also records
 build provenance attestations for both artifacts.
 
@@ -71,22 +71,37 @@ HTTPS; plain HTTP is accepted only for loopback development hosts such as
 ## Resources / Recursos
 
 - `send.create`
-- `messages`: `list`, `retrieve`, `events`, `engagement`, `metrics`, `timeseries`
+- `messages`: `list`, `retrieve`, `raw`, `events`, `engagement`, `metrics`, `timeseries`
+- `inbound_messages`: `list`, `retrieve`, `raw`
+- `suppressions`: `list`, `create`, `retrieve`, `release`, `import_csv`, `export_csv`
 - `domains`: `list`, `create`, `retrieve`, `delete`, `dns`, `verify`, `rotate_dkim`
 - `templates`: lifecycle, assets, preview, versions, publishing and revert
-- `webhooks`: `list`, `create`, `delete`
+- `webhooks`: lifecycle, deliveries, replay, secret rotation and test delivery
 - `automations`: lifecycle, drafts, runs and cancellation
 - `usage.retrieve`
 
 Every resource is available on both `ViaPost` and `AsyncViaPost`; async methods must be awaited.
 Resource inputs and outputs use public `TypedDict` models rather than `Any`. Useful types such as
 `SendRequest`, `SendResult`, `MessageList`, `CreateDomainRequest`, `CreateTemplateRequest`,
-`CreateWebhookRequest`, `AutomationRunDetail`, and `MonthlyUsage` are exported from `viapost`.
+`CreateWebhookRequest`, `CreateSuppressionRequest`, `InboundMessageDetail`,
+`WebhookDeliveryDetail`, `AutomationRunDetail`, and `MonthlyUsage` are exported from `viapost`.
+
+Webhook creation and secret rotation return redaction-safe objects. Access a newly issued secret
+deliberately with `result.secret`; `str(result)`, `repr(result)`, and `result.to_dict()` redact it.
+Callback URL checks reject credentials, fragments, localhost and non-public IP literals. The API
+remains authoritative and also resolves DNS immediately before accepting or delivering callbacks.
+
+The three public status-subscription endpoints are intentionally not exposed by `ViaPost` or
+`AsyncViaPost`. They are unauthenticated double-opt-in browser flows hosted exclusively at
+`status.viapost.io`; routing them through an authenticated SDK client would unnecessarily send an
+API key to a different host. Use the status page to subscribe, confirm, or unsubscribe.
 
 ## Reliability and errors / Confiabilidade e erros
 
 - Default timeout: 60 seconds; override globally or per request.
-- Maximum decoded response body: 10 MiB by default, enforced while streaming.
+- Maximum decoded JSON/error body: 10 MiB by default, enforced while streaming.
+- Raw RFC 822 message downloads have an independent 40 MiB default limit; configure
+  `max_raw_response_bytes` up to the defensive 64 MiB ceiling without increasing JSON/error limits.
 - Automatic retries: only GET/HEAD responses with HTTP 429 or 5xx; default is two retries.
 - Mutating requests are never retried automatically.
 - API keys and `send.create` idempotency keys must use visible ASCII, making them safe for HTTP
@@ -106,8 +121,9 @@ except ViaPostTimeoutError as error:
     print(error.timeout)
 ```
 
-Error bodies and headers may contain request-related data. Redact them before forwarding errors to
-shared logs or third-party observability services. Transport exceptions deliberately clear both
+Error messages, bodies and response headers are recursively sanitized for credentials and common
+secret/token fields before they are exposed by `ViaPostAPIError`. Application data can still be
+sensitive, so use normal care before forwarding errors to third-party services. Transport exceptions deliberately clear both
 `__cause__` and `__context__` instead of retaining the underlying `httpx` exception, preventing
 request headers from being reachable through exception chaining.
 
@@ -115,9 +131,9 @@ request headers from being reachable through exception chaining.
 
 The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yaml`. Its SHA-256 is
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
-Version 0.1.0 vendors contract commit
-`a5a2f018a3b4b47ed746325a8982f711171c3175` with SHA-256
-`d1f223342ad1ca326ba716af6e508c78594e1b108958cce2ec4a1efd31a9773a`.
+Version 0.2.0 vendors the semantic snapshot published at
+`https://docs.viapost.io/openapi/public.yaml` with SHA-256
+`f1b1fc0f198a2b0b36f0e893515dad191d6bb7d139fcf1e942c036bfa2f5169b`.
 
 ```bash
 python scripts/check_contract.py
@@ -143,9 +159,12 @@ Release builds install a fully hash-locked toolchain from
 `.github/requirements/release.txt`; isolated artifact tests install runtime dependencies from the
 separate `.github/requirements/runtime.txt` hash lock and install the wheel with `--no-deps`.
 Checksums and immutable workflow artifacts are created before that consumer installation.
-Publishing a GitHub Release automatically verifies, builds, attaches and attests the wheel and
-source distribution. The locked release toolchain itself is also audited with hash enforcement.
+Pushing a version tag (or manually dispatching its existing tag) verifies and builds first, creates
+provenance attestations, then strictly creates or recovers a matching draft without overwriting any
+asset before publishing it. A later manual PyPI continuation accepts an existing public release only
+when its remote tag commit, complete asset set, and every asset hash match the newly verified build.
+The locked release toolchain itself is audited with hash enforcement.
 PyPI publishing requires an explicit manual workflow opt-in, the protected `pypi` environment, and
-successful GitHub asset attachment plus provenance attestation first.
+a verified, already-published GitHub Release plus provenance attestation first.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).

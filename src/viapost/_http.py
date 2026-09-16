@@ -91,18 +91,107 @@ async def _aread_limited(response: httpx.Response, limit: int) -> bytes:
     return b"".join(chunks)
 
 
-def _raise_api_error(response: httpx.Response, body: object) -> None:
+_SENSITIVE_FIELDS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "authorization",
+        "cookie",
+        "set_cookie",
+        "secret",
+        "token",
+        "access_token",
+        "refresh_token",
+        "client_secret",
+        "credential",
+        "credentials",
+        "key",
+        "password",
+        "private_key",
+        "session",
+        "signing_key",
+    }
+)
+
+
+def _redact(value: object, api_key: str, *, field: str | None = None) -> object:
+    sensitive_values = _extract_sensitive_values(value)
+    if api_key:
+        sensitive_values.add(api_key)
+    return _redact_values(value, sensitive_values, field=field)
+
+
+def _is_sensitive_field(field: str | None) -> bool:
+    normalized = "" if field is None else field.lower().replace("-", "_")
+    return normalized in _SENSITIVE_FIELDS or any(
+        marker in normalized
+        for marker in ("secret", "token", "password", "api_key", "auth", "cookie")
+    )
+
+
+def _extract_sensitive_values(value: object, *, field: str | None = None) -> set[str]:
+    if _is_sensitive_field(field):
+        if isinstance(value, str) and value:
+            return {value}
+        if isinstance(value, Mapping):
+            return {
+                item
+                for nested in value.values()
+                for item in _extract_sensitive_values(nested, field=field)
+            }
+        if isinstance(value, (list, tuple)):
+            return {
+                item for nested in value for item in _extract_sensitive_values(nested, field=field)
+            }
+        return set()
+    if isinstance(value, Mapping):
+        return {
+            item
+            for key, nested in value.items()
+            for item in _extract_sensitive_values(nested, field=str(key))
+        }
+    if isinstance(value, (list, tuple)):
+        return {item for nested in value for item in _extract_sensitive_values(nested)}
+    return set()
+
+
+def _redact_values(
+    value: object, sensitive_values: set[str], *, field: str | None = None
+) -> object:
+    if _is_sensitive_field(field):
+        return "<redacted>"
+    if isinstance(value, str):
+        for secret in sensitive_values:
+            value = value.replace(secret, "<redacted>")
+        return value
+    if isinstance(value, Mapping):
+        return {
+            _redact_values(str(key), sensitive_values): _redact_values(
+                item, sensitive_values, field=str(key)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_values(item, sensitive_values) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_values(item, sensitive_values) for item in value)
+    return value
+
+
+def _raise_api_error(response: httpx.Response, body: object, api_key: str) -> None:
     if response.is_success:
         return
     request = response.request
+    safe_body = _redact(body, api_key)
+    safe_headers = cast(dict[str, str], _redact(dict(response.headers), api_key))
     raise ViaPostAPIError(
-        _error_message(body, response.status_code),
+        _error_message(safe_body, response.status_code),
         status=response.status_code,
         method=request.method,
         url=str(request.url),
-        body=body,
-        request_id=_request_id(response, body),
-        headers=response.headers,
+        body=safe_body,
+        request_id=cast(str | None, _redact(_request_id(response, body), api_key)),
+        headers=safe_headers,
     )
 
 
@@ -161,13 +250,21 @@ class SyncHTTPClient:
         *,
         query: Mapping[str, object] | None = None,
         body: object | None = None,
+        content: bytes | str | None = None,
         headers: Mapping[str, str] | None = None,
+        accept: str = "application/json",
+        content_type: str | None = None,
+        raw_response: bool = False,
         timeout: float | None = None,
     ) -> object:
+        if body is not None and content is not None:
+            raise ValueError("body and content cannot be provided together")
         request_headers = httpx.Headers(headers)
         request_headers["Authorization"] = f"Bearer {self.config.api_key}"
-        request_headers["Accept"] = "application/json"
-        request_headers["User-Agent"] = "viapost-python/0.1.3"
+        request_headers["Accept"] = accept
+        request_headers["User-Agent"] = "viapost-python/0.2.0"
+        if content_type is not None:
+            request_headers["Content-Type"] = content_type
         effective_timeout = _effective_timeout(self.config, timeout)
         json_body: object | None = body
         attempt = 0
@@ -181,11 +278,19 @@ class SyncHTTPClient:
                     headers=request_headers,
                     timeout=effective_timeout,
                     json=json_body,
+                    content=content,
                     follow_redirects=False,
                 ) as response:
-                    decoded = _decode_bytes(
-                        response.status_code,
-                        _read_limited(response, self.config.max_response_bytes),
+                    limit = (
+                        self.config.max_raw_response_bytes
+                        if raw_response and response.is_success
+                        else self.config.max_response_bytes
+                    )
+                    response_bytes = _read_limited(response, limit)
+                    decoded = (
+                        response_bytes
+                        if raw_response and response.is_success
+                        else _decode_bytes(response.status_code, response_bytes)
                     )
                     if (
                         _is_retryable(method, response.status_code)
@@ -194,7 +299,7 @@ class SyncHTTPClient:
                         time.sleep(_retry_delay(response, attempt, self.config))
                         attempt += 1
                         continue
-                    _raise_api_error(response, decoded)
+                    _raise_api_error(response, decoded, self.config.api_key)
                     return decoded
             except httpx.TimeoutException:
                 transport_error = ViaPostTimeoutError(effective_timeout)
@@ -216,13 +321,21 @@ class AsyncHTTPClient:
         *,
         query: Mapping[str, object] | None = None,
         body: object | None = None,
+        content: bytes | str | None = None,
         headers: Mapping[str, str] | None = None,
+        accept: str = "application/json",
+        content_type: str | None = None,
+        raw_response: bool = False,
         timeout: float | None = None,
     ) -> object:
+        if body is not None and content is not None:
+            raise ValueError("body and content cannot be provided together")
         request_headers = httpx.Headers(headers)
         request_headers["Authorization"] = f"Bearer {self.config.api_key}"
-        request_headers["Accept"] = "application/json"
-        request_headers["User-Agent"] = "viapost-python/0.1.3"
+        request_headers["Accept"] = accept
+        request_headers["User-Agent"] = "viapost-python/0.2.0"
+        if content_type is not None:
+            request_headers["Content-Type"] = content_type
         effective_timeout = _effective_timeout(self.config, timeout)
         json_body: object | None = body
         attempt = 0
@@ -236,11 +349,19 @@ class AsyncHTTPClient:
                     headers=request_headers,
                     timeout=effective_timeout,
                     json=json_body,
+                    content=content,
                     follow_redirects=False,
                 ) as response:
-                    decoded = _decode_bytes(
-                        response.status_code,
-                        await _aread_limited(response, self.config.max_response_bytes),
+                    limit = (
+                        self.config.max_raw_response_bytes
+                        if raw_response and response.is_success
+                        else self.config.max_response_bytes
+                    )
+                    response_bytes = await _aread_limited(response, limit)
+                    decoded = (
+                        response_bytes
+                        if raw_response and response.is_success
+                        else _decode_bytes(response.status_code, response_bytes)
                     )
                     if (
                         _is_retryable(method, response.status_code)
@@ -249,7 +370,7 @@ class AsyncHTTPClient:
                         await asyncio.sleep(_retry_delay(response, attempt, self.config))
                         attempt += 1
                         continue
-                    _raise_api_error(response, decoded)
+                    _raise_api_error(response, decoded, self.config.api_key)
                     return decoded
             except httpx.TimeoutException:
                 transport_error = ViaPostTimeoutError(effective_timeout)

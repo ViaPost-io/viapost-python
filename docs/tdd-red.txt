@@ -60,3 +60,26 @@ Result:
   1 failed, 1 passed. The release had no hash-aware audit of its toolchain, still pinned vulnerable
   `pip==25.3`, and allowed the opt-in PyPI job to run in parallel with GitHub asset attachment and
   provenance attestation.
+
+OpenAPI synchronization Red evidence — 2026-09-16
+
+Command:
+  .venv/bin/pytest tests/test_contract.py tests/test_workflows.py tests/test_new_resources.py -q
+
+Result:
+  Collection failed because `OPENAPI_SOURCE_URL` and `CreateSuppressionRequest` did not exist.
+  The focused tests were added before implementation and also specified the new inbound, raw,
+  suppression, and webhook wire operations plus the public contract source used by the scheduled
+  drift workflow.
+
+Security and release re-gate Red evidence — 2026-09-16
+
+Command:
+  .venv/bin/pytest -q tests/test_contract.py tests/test_http.py tests/test_client.py \
+    tests/test_new_resources.py tests/test_workflows.py tests/test_contract_checker.py
+
+Result:
+  Collection failed because the bounded/allowlisted contract-fetch API did not exist. The same Red
+  cycle added failing specifications for v0.2.0 metadata, redaction-safe webhook secrets, separate
+  40 MiB raw downloads, recursively sanitized API errors, client-detectable webhook SSRF inputs,
+  and build/attest-before-release workflow ordering.

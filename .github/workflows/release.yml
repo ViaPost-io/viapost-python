@@ -1,12 +1,12 @@
 name: Release Python package
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing release tag; must equal v + project version
+        description: Existing tag; must equal v + project version
         required: true
         type: string
       publish_pypi:
@@ -21,14 +21,27 @@ permissions:
 jobs:
   verify-and-build:
     runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.event_name == 'push' && github.sha || inputs.tag }}
           fetch-depth: 0
           persist-credentials: false
+      - id: source
+        name: Record immutable source commit
+        env:
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          SOURCE_SHA=$(git rev-parse HEAD)
+          if [[ "${{ github.event_name }}" == "push" && "$SOURCE_SHA" != "$EVENT_SHA" ]]; then
+            echo "checked out source does not match the event SHA" >&2
+            exit 1
+          fi
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -36,7 +49,7 @@ jobs:
           cache-dependency-path: .github/requirements/release.txt
       - name: Require exact release tag commit on main
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
         run: |
           git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
@@ -50,7 +63,7 @@ jobs:
         run: python -m pip install --no-deps --no-build-isolation .
       - name: Verify release tag
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
         run: python scripts/check_release_tag.py "$RELEASE_TAG"
       - run: python scripts/check_contract.py
       - run: ruff check .
@@ -91,28 +104,6 @@ jobs:
           cd dist
           sha256sum -c ../checksums/SHA256SUMS
 
-  attach-to-github-release:
-    needs: verify-and-build
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: write
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: python-distributions
-          path: dist
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: distribution-checksums
-          path: checksums
-      - name: Attach installable packages and checksums
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" dist/* checksums/SHA256SUMS --clobber
-
   attest-build-provenance:
     needs: verify-and-build
     runs-on: ubuntu-latest
@@ -130,18 +121,56 @@ jobs:
         with:
           subject-path: dist/*
 
+  publish-github-release:
+    needs:
+      - verify-and-build
+      - attest-build-provenance
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify-and-build.outputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distributions
+          path: dist
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distribution-checksums
+          path: checksums
+      - name: Recover or publish the verified draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          SOURCE_SHA: ${{ needs.verify-and-build.outputs.source_sha }}
+        run: >-
+          python scripts/publish_release.py --tag "$RELEASE_TAG" --source-sha "$SOURCE_SHA"
+          dist/* checksums/SHA256SUMS
+
   publish-to-pypi:
     needs:
       - verify-and-build
-      - attach-to-github-release
       - attest-build-provenance
+      - publish-github-release
     if: github.event_name == 'workflow_dispatch' && inputs.publish_pypi == true
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
       actions: read
+      contents: read
       id-token: write
     steps:
+      - name: Require the GitHub release to be published
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: python-distributions
