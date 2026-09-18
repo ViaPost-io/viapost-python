@@ -6,7 +6,7 @@ from importlib.resources import files
 from pathlib import Path
 
 OPENAPI_SOURCE_URL = "https://docs.viapost.io/openapi/public.yaml"
-OPENAPI_SHA256 = "f1b1fc0f198a2b0b36f0e893515dad191d6bb7d139fcf1e942c036bfa2f5169b"
+OPENAPI_SHA256 = "c5d5ae1d85e61b4e14e09351b14146465ce357075d2ed5fe4e034f6ff6693dc1"
 
 
 def openapi_path() -> Path:
