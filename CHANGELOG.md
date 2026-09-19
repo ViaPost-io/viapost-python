@@ -5,6 +5,14 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-18
+
+### Changed
+
+- Synchronize the vendored public OpenAPI snapshot with the expanded contacts, domain health and
+  inbound configuration, message timeline and scheduled-message cancellation contract.
+- Bump the public SDK version for the changed contract snapshot.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added
@@ -57,7 +65,8 @@ follow [Semantic Versioning](https://semver.org/).
 - Typed errors, safe URL/path handling, bounded responses, conservative retries, and idempotent send.
 - Verifiable OpenAPI snapshot and GitHub/PyPI release pipelines.
 
-[Unreleased]: https://github.com/ViaPost-io/viapost-python/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ViaPost-io/viapost-python/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ViaPost-io/viapost-python/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.1...v0.1.2
