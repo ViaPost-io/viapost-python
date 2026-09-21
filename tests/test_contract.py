@@ -46,5 +46,6 @@ def test_vendored_openapi_contains_the_current_authenticated_surface() -> None:
         "/v1/webhooks/{id}/secret/rotate",
         "/v1/contacts/import",
         "/v1/domains/{domain_id}/tracking-domains",
+        "/v1/segments",
         "/v1/segments/preview",
     } <= document["paths"].keys()
