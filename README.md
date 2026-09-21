@@ -8,11 +8,12 @@ asynchronous APIs. Requires Python 3.10 or newer.
 
 ## Install / Instalação
 
-GitHub Releases is the primary distribution channel. Install the exact wheel attached to a release
-/ GitHub Releases é o canal principal de distribuição. Instale o wheel exato anexado à release:
+GitHub Releases is the primary distribution channel. Install the exact wheel attached to the latest
+published release / GitHub Releases é o canal principal de distribuição. Instale o wheel exato
+anexado à última release publicada:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.3.0/viapost-0.3.0-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.1.3/viapost-0.1.3-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -22,9 +23,9 @@ no PyPI:
 pip install viapost
 ```
 
-The release also includes the source distribution (`viapost-0.3.0.tar.gz`) and checksums. The wheel
-is preferred because installation does not need to execute a build backend. GitHub also records
-build provenance attestations for both artifacts.
+That release also includes the source distribution (`viapost-0.1.3.tar.gz`) and checksums. The
+wheel is preferred because installation does not need to execute a build backend. GitHub also
+records build provenance attestations for both artifacts.
 
 ## Quickstart / Início rápido
 
@@ -133,7 +134,7 @@ The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yam
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
 Version 0.3.0 vendors the semantic snapshot published at
 `https://docs.viapost.io/openapi/public.yaml` with SHA-256
-`c5d5ae1d85e61b4e14e09351b14146465ce357075d2ed5fe4e034f6ff6693dc1`.
+`4296cf369c8a2b1e27f215fddc36dbafb4203aa35c509095df1048243b8da847`.
 
 ```bash
 python scripts/check_contract.py
