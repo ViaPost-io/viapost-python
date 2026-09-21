@@ -21,7 +21,7 @@ def test_public_version_matches_project_metadata() -> None:
     version = re.search(r'^version = "([^"]+)"$', project, re.MULTILINE)
 
     assert version is not None
-    assert __version__ == version.group(1) == "0.2.0"
+    assert __version__ == version.group(1) == "0.2.1"
 
 
 def test_vendored_openapi_contains_the_current_authenticated_surface() -> None:
@@ -36,4 +36,8 @@ def test_vendored_openapi_contains_the_current_authenticated_surface() -> None:
         "/v1/suppressions/export",
         "/v1/webhooks/{id}/deliveries",
         "/v1/webhooks/{id}/secret/rotate",
+        "/v1/contacts/import",
+        "/v1/domains/{domain_id}/tracking-domains",
+        "/v1/segments",
+        "/v1/broadcasts",
     } <= document["paths"].keys()

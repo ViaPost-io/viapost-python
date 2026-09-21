@@ -5,6 +5,15 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-21
+
+### Changed
+
+- Synchronize the exact vendored OpenAPI 3.1 snapshot with the current published public contract,
+  including contacts import, tracking domains, audience segments, inbound configuration, and
+  broadcast foundations. This release does not claim new high-level client methods for endpoints
+  that are not yet implemented by the typed resource layer.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added
@@ -57,7 +66,8 @@ follow [Semantic Versioning](https://semver.org/).
 - Typed errors, safe URL/path handling, bounded responses, conservative retries, and idempotent send.
 - Verifiable OpenAPI snapshot and GitHub/PyPI release pipelines.
 
-[Unreleased]: https://github.com/ViaPost-io/viapost-python/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ViaPost-io/viapost-python/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/ViaPost-io/viapost-python/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.1...v0.1.2
