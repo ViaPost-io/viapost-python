@@ -56,6 +56,56 @@ def test_release_recovers_exact_draft_when_github_hides_drafts_by_tag(
     }
 
 
+def test_release_returns_none_when_draft_listing_has_no_matching_tag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(*args: str, capture: bool = False) -> CompletedProcess[bytes]:
+        assert capture is True
+        if args[-1] == "repos/acme/sdk/releases/tags/v0.2.0":
+            return CompletedProcess(args, 1, stdout=b"", stderr=b"HTTP 404")
+        assert args[-1] == "repos/acme/sdk/releases?per_page=100"
+        return CompletedProcess(args, 0, stdout=b'[{"tag_name":"v0.1.0"}]', stderr=b"")
+
+    monkeypatch.setattr(publish_release, "_run", fake_run)
+
+    assert publish_release._release("acme/sdk", "v0.2.0") is None
+
+
+def test_release_rejects_duplicate_tags_in_draft_listing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(*args: str, capture: bool = False) -> CompletedProcess[bytes]:
+        assert capture is True
+        if args[-1] == "repos/acme/sdk/releases/tags/v0.2.0":
+            return CompletedProcess(args, 1, stdout=b"", stderr=b"HTTP 404")
+        assert args[-1] == "repos/acme/sdk/releases?per_page=100"
+        return CompletedProcess(
+            args,
+            0,
+            stdout=b'[{"tag_name":"v0.2.0"},{"tag_name":"v0.2.0"}]',
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(publish_release, "_run", fake_run)
+
+    with pytest.raises(RuntimeError, match="multiple GitHub releases"):
+        publish_release._release("acme/sdk", "v0.2.0")
+
+
+def test_release_rejects_failed_draft_listing(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(*args: str, capture: bool = False) -> CompletedProcess[bytes]:
+        assert capture is True
+        if args[-1] == "repos/acme/sdk/releases/tags/v0.2.0":
+            return CompletedProcess(args, 1, stdout=b"", stderr=b"HTTP 404")
+        assert args[-1] == "repos/acme/sdk/releases?per_page=100"
+        return CompletedProcess(args, 1, stdout=b"", stderr=b"HTTP 500")
+
+    monkeypatch.setattr(publish_release, "_run", fake_run)
+
+    with pytest.raises(RuntimeError, match="unable to list GitHub releases"):
+        publish_release._release("acme/sdk", "v0.2.0")
+
+
 @pytest.mark.parametrize(
     "release",
     [
