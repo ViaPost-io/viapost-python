@@ -3,21 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-### Changed
-
-- Re-synchronize the vendored public OpenAPI snapshot with the published contract, including the
-  contacts import, tracking domains, audience segments, inbound configuration, and broadcast
-  foundations. This does not claim new high-level client methods for endpoints that remain outside
-  the typed resource layer.
-
 ## [0.3.0] - 2026-09-18
 
 ### Changed
 
-- Synchronize the vendored public OpenAPI snapshot with the expanded contacts, domain health and
-  inbound configuration, message timeline and scheduled-message cancellation contract.
+- Synchronize the vendored public OpenAPI snapshot with the published contract, including contacts
+  import, tracking domains, audience segments, inbound configuration, and broadcast foundations.
+  This does not claim new high-level client methods for endpoints outside the typed resource layer.
 - Bump the public SDK version for the changed contract snapshot.
 
 ## [0.2.0] - 2026-09-16
