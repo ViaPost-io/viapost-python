@@ -5,6 +5,13 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Re-synchronize the vendored public OpenAPI snapshot with the published contract, including the
+  contacts import, tracking domains, audience segments, inbound configuration, and broadcast
+  foundations. This does not claim new high-level client methods for endpoints that remain outside
+  the typed resource layer.
+
 ## [0.3.0] - 2026-09-18
 
 ### Changed

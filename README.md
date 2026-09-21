@@ -133,7 +133,7 @@ The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yam
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
 Version 0.3.0 vendors the semantic snapshot published at
 `https://docs.viapost.io/openapi/public.yaml` with SHA-256
-`c5d5ae1d85e61b4e14e09351b14146465ce357075d2ed5fe4e034f6ff6693dc1`.
+`4296cf369c8a2b1e27f215fddc36dbafb4203aa35c509095df1048243b8da847`.
 
 ```bash
 python scripts/check_contract.py
