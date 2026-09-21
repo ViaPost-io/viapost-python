@@ -26,9 +26,27 @@ def _release(repo: str, tag: str) -> dict[str, object] | None:
     if result.returncode == 0:
         return cast(dict[str, object], json.loads(result.stdout))
     error = result.stderr.decode("utf-8", errors="replace")
-    if "HTTP 404" in error:
-        return None
-    raise RuntimeError("unable to query the GitHub release")
+    if "HTTP 404" not in error:
+        raise RuntimeError("unable to query the GitHub release")
+
+    # GitHub does not resolve a draft by tag until it becomes public. Newly
+    # created drafts are returned first by the authenticated releases listing;
+    # recover only one exact tag and let the callers validate every other
+    # invariant (state, commit and artifacts) before it is reused.
+    drafts = _run("gh", "api", f"repos/{repo}/releases?per_page=100", capture=True)
+    if drafts.returncode != 0:
+        raise RuntimeError("unable to list GitHub releases for draft recovery")
+    document = json.loads(drafts.stdout)
+    if not isinstance(document, list):
+        raise RuntimeError("GitHub releases listing has an unexpected shape")
+    matches = [
+        candidate
+        for candidate in document
+        if isinstance(candidate, dict) and candidate.get("tag_name") == tag
+    ]
+    if len(matches) > 1:
+        raise RuntimeError("multiple GitHub releases claim the requested tag")
+    return cast(dict[str, object], matches[0]) if matches else None
 
 
 def _tag_commit(repo: str, tag: str) -> str:
