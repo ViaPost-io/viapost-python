@@ -8,12 +8,12 @@ asynchronous APIs. Requires Python 3.10 or newer.
 
 ## Install / Instalação
 
-GitHub Releases is the primary distribution channel. After the version is published, install the
-exact wheel attached to its release / GitHub Releases é o canal principal de distribuição. Após a
-publicação da versão, instale o wheel exato anexado à respectiva release:
+GitHub Releases is the primary distribution channel. Install the exact wheel attached to the latest
+published release / GitHub Releases é o canal principal de distribuição. Instale o wheel exato
+anexado à última release publicada:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.3.0/viapost-0.3.0-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.1.3/viapost-0.1.3-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -23,7 +23,7 @@ no PyPI:
 pip install viapost
 ```
 
-That release also includes the source distribution (`viapost-0.3.0.tar.gz`) and checksums. The
+That release also includes the source distribution (`viapost-0.1.3.tar.gz`) and checksums. The
 wheel is preferred because installation does not need to execute a build backend. GitHub also
 records build provenance attestations for both artifacts.
 
