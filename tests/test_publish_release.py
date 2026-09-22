@@ -198,7 +198,7 @@ def test_publish_uses_created_release_id_without_reading_draft_by_tag(
     monkeypatch.setattr(
         publish_release,
         "_upload_asset",
-        lambda _repo, release_id, path: uploaded.append((release_id, path.name)),
+        lambda _release, _repo, release_id, path: uploaded.append((release_id, path.name)),
     )
     monkeypatch.setattr(publish_release, "_release_by_id", lambda *_: recovered)
     monkeypatch.setattr(publish_release, "_publish_draft", lambda *_: published)
@@ -207,6 +207,55 @@ def test_publish_uses_created_release_id_without_reading_draft_by_tag(
     publish_release.publish("v0.2.0", "abc123", [wheel, checksums])
 
     assert uploaded == [(7, wheel.name), (7, checksums.name)]
+
+
+def test_upload_asset_uses_validated_github_upload_url(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    artifact = tmp_path / "viapost wheel.whl"
+    artifact.write_bytes(b"wheel")
+    release: dict[str, object] = {
+        "upload_url": "https://uploads.github.com/repos/acme/sdk/releases/7/assets{?name,label}"
+    }
+
+    def fake_run(*args: str, capture: bool = False) -> CompletedProcess[bytes]:
+        assert capture is True
+        assert args == (
+            "gh",
+            "api",
+            "--method",
+            "POST",
+            "https://uploads.github.com/repos/acme/sdk/releases/7/assets?name=viapost%20wheel.whl",
+            "-H",
+            "Content-Type: application/octet-stream",
+            "--input",
+            str(artifact),
+        )
+        return CompletedProcess(args, 0, stdout=b"{}", stderr=b"")
+
+    monkeypatch.setattr(publish_release, "_run", fake_run)
+
+    publish_release._upload_asset(release, "acme/sdk", 7, artifact)
+
+
+@pytest.mark.parametrize(
+    "upload_url",
+    [
+        None,
+        "http://uploads.github.com/repos/acme/sdk/releases/7/assets{?name,label}",
+        "https://api.github.com/repos/acme/sdk/releases/7/assets{?name,label}",
+        "https://uploads.github.com/repos/acme/sdk/releases/8/assets{?name,label}",
+        "https://uploads.github.com/repos/acme/sdk/releases/7/assets?name=unexpected",
+    ],
+)
+def test_upload_asset_rejects_untrusted_or_mismatched_upload_url(
+    upload_url: object, tmp_path: Path
+) -> None:
+    artifact = tmp_path / "viapost.whl"
+    artifact.write_bytes(b"wheel")
+
+    with pytest.raises(ValueError, match="upload URL"):
+        publish_release._asset_upload_url({"upload_url": upload_url}, "acme/sdk", 7, artifact)
 
 
 def test_release_rejects_failed_draft_listing(monkeypatch: pytest.MonkeyPatch) -> None:

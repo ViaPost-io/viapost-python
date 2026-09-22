@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import cast
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 
 def _run(*args: str, capture: bool = False) -> subprocess.CompletedProcess[bytes]:
@@ -115,13 +115,34 @@ def _create_draft(repo: str, tag: str, source_sha: str) -> dict[str, object]:
     return cast(dict[str, object], document)
 
 
-def _upload_asset(repo: str, release_id: int, path: Path) -> None:
+def _asset_upload_url(release: dict[str, object], repo: str, release_id: int, path: Path) -> str:
+    raw_url = release.get("upload_url")
+    if not isinstance(raw_url, str):
+        raise ValueError("release metadata does not contain an upload URL")
+    base_url = raw_url.split("{", maxsplit=1)[0]
+    parsed = urlsplit(base_url)
+    expected_path = f"/repos/{repo}/releases/{release_id}/assets"
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "uploads.github.com"
+        or parsed.port is not None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != expected_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("release upload URL does not match the expected GitHub endpoint")
+    return f"{base_url}?name={quote(path.name, safe='')}"
+
+
+def _upload_asset(release: dict[str, object], repo: str, release_id: int, path: Path) -> None:
     result = _run(
         "gh",
         "api",
         "--method",
         "POST",
-        f"repos/{repo}/releases/{release_id}/assets?name={quote(path.name, safe='')}",
+        _asset_upload_url(release, repo, release_id, path),
         "-H",
         "Content-Type: application/octet-stream",
         "--input",
@@ -289,7 +310,7 @@ def publish(tag: str, source_sha: str, paths: list[Path]) -> None:
         if name in existing:
             _require_same_asset(repo, existing[name], path)
             continue
-        _upload_asset(repo, release_id, path)
+        _upload_asset(release, repo, release_id, path)
 
     recovered = _release_by_id(repo, release_id)
     recovered_assets = validate_draft(
