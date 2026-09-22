@@ -10,6 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import cast
+from urllib.parse import quote, urlsplit
 
 
 def _run(*args: str, capture: bool = False) -> subprocess.CompletedProcess[bytes]:
@@ -53,8 +54,125 @@ def _release(repo: str, tag: str) -> dict[str, object] | None:
         if isinstance(candidate, dict) and candidate.get("tag_name") == tag
     ]
     if len(matches) > 1:
-        raise RuntimeError("multiple GitHub releases claim the requested tag")
+        # GitHub permits several unpublished drafts for a tag. They are safe
+        # to recover only while each is an empty, stable draft with an ID; any
+        # uploaded asset would make choosing a canonical draft ambiguous.
+        if not all(
+            candidate.get("draft") is True
+            and candidate.get("prerelease") is False
+            and isinstance(candidate.get("id"), int)
+            and candidate.get("assets") == []
+            for candidate in matches
+        ):
+            raise RuntimeError("multiple GitHub releases claim the requested tag")
+        return min(matches, key=lambda candidate: cast(int, candidate["id"]))
     return cast(dict[str, object], matches[0]) if matches else None
+
+
+def _release_id(release: dict[str, object]) -> int:
+    release_id = release.get("id")
+    if not isinstance(release_id, int):
+        raise ValueError("release metadata does not contain a valid ID")
+    return release_id
+
+
+def _release_by_id(repo: str, release_id: int) -> dict[str, object]:
+    result = _run("gh", "api", f"repos/{repo}/releases/{release_id}", capture=True)
+    if result.returncode != 0:
+        raise RuntimeError("unable to read the GitHub release by ID")
+    document = json.loads(result.stdout)
+    if not isinstance(document, dict):
+        raise RuntimeError("GitHub release lookup returned an unexpected shape")
+    return cast(dict[str, object], document)
+
+
+def _create_draft(repo: str, tag: str, source_sha: str) -> dict[str, object]:
+    result = _run(
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        f"repos/{repo}/releases",
+        "-f",
+        f"tag_name={tag}",
+        "-f",
+        f"target_commitish={source_sha}",
+        "-f",
+        f"name={tag}",
+        "-F",
+        "draft=true",
+        "-F",
+        "prerelease=false",
+        "-F",
+        "generate_release_notes=true",
+        capture=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("unable to create the GitHub draft release")
+    document = json.loads(result.stdout)
+    if not isinstance(document, dict):
+        raise RuntimeError("GitHub draft creation returned an unexpected shape")
+    return cast(dict[str, object], document)
+
+
+def _asset_upload_url(release: dict[str, object], repo: str, release_id: int, path: Path) -> str:
+    raw_url = release.get("upload_url")
+    if not isinstance(raw_url, str):
+        raise ValueError("release metadata does not contain an upload URL")
+    template = "{?name,label}"
+    if not raw_url.endswith(template) or raw_url.count("{") != 1 or raw_url.count("}") != 1:
+        raise ValueError("release upload URL has an unexpected template")
+    base_url = raw_url[: -len(template)]
+    parsed = urlsplit(base_url)
+    expected_path = f"/repos/{repo}/releases/{release_id}/assets"
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "uploads.github.com"
+        or parsed.port is not None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != expected_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("release upload URL does not match the expected GitHub endpoint")
+    return f"{base_url}?name={quote(path.name, safe='')}"
+
+
+def _upload_asset(release: dict[str, object], repo: str, release_id: int, path: Path) -> None:
+    result = _run(
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        _asset_upload_url(release, repo, release_id, path),
+        "-H",
+        "Content-Type: application/octet-stream",
+        "--input",
+        str(path),
+        capture=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"unable to upload release asset: {path.name}")
+
+
+def _publish_draft(repo: str, release_id: int) -> dict[str, object]:
+    result = _run(
+        "gh",
+        "api",
+        "--method",
+        "PATCH",
+        f"repos/{repo}/releases/{release_id}",
+        "-F",
+        "draft=false",
+        capture=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("unable to publish the verified GitHub release")
+    document = json.loads(result.stdout)
+    if not isinstance(document, dict):
+        raise RuntimeError("GitHub release publication returned an unexpected shape")
+    return cast(dict[str, object], document)
 
 
 def _tag_commit(repo: str, tag: str) -> str:
@@ -178,24 +296,10 @@ def publish(tag: str, source_sha: str, paths: list[Path]) -> None:
             _require_same_asset(repo, asset_id, by_name[name])
         return
     if release is None:
-        created = _run(
-            "gh",
-            "release",
-            "create",
-            tag,
-            "--draft",
-            "--verify-tag",
-            "--target",
-            source_sha,
-            "--title",
-            tag,
-            "--generate-notes",
-        )
-        if created.returncode != 0:
-            raise RuntimeError("unable to create the GitHub draft release")
-        release = _release(repo, tag)
-        if release is None:
-            raise RuntimeError("created GitHub draft release could not be read back")
+        # Preserve the POST response rather than re-reading a draft by tag:
+        # GitHub intentionally hides drafts from that endpoint and can lag
+        # immediately after creation.
+        release = _create_draft(repo, tag, source_sha)
 
     existing = validate_draft(
         release,
@@ -204,17 +308,14 @@ def publish(tag: str, source_sha: str, paths: list[Path]) -> None:
         tag_commit_sha=_tag_commit(repo, tag),
         expected_names=set(by_name),
     )
+    release_id = _release_id(release)
     for name, path in by_name.items():
         if name in existing:
             _require_same_asset(repo, existing[name], path)
             continue
-        uploaded = _run("gh", "release", "upload", tag, str(path))
-        if uploaded.returncode != 0:
-            raise RuntimeError(f"unable to upload release asset: {name}")
+        _upload_asset(release, repo, release_id, path)
 
-    recovered = _release(repo, tag)
-    if recovered is None:
-        raise RuntimeError("draft release disappeared during publication")
+    recovered = _release_by_id(repo, release_id)
     recovered_assets = validate_draft(
         recovered,
         tag=tag,
@@ -227,11 +328,8 @@ def publish(tag: str, source_sha: str, paths: list[Path]) -> None:
     for name, asset_id in recovered_assets.items():
         _require_same_asset(repo, asset_id, by_name[name])
 
-    edited = _run("gh", "release", "edit", tag, "--draft=false")
-    if edited.returncode != 0:
-        raise RuntimeError("unable to publish the verified GitHub release")
-    published = _release(repo, tag)
-    if published is None or published.get("draft") is not False:
+    published = _publish_draft(repo, release_id)
+    if published.get("draft") is not False:
         raise RuntimeError("GitHub release did not become public")
     published_assets = validate_published(
         published,
