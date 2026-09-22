@@ -119,7 +119,10 @@ def _asset_upload_url(release: dict[str, object], repo: str, release_id: int, pa
     raw_url = release.get("upload_url")
     if not isinstance(raw_url, str):
         raise ValueError("release metadata does not contain an upload URL")
-    base_url = raw_url.split("{", maxsplit=1)[0]
+    template = "{?name,label}"
+    if not raw_url.endswith(template) or raw_url.count("{") != 1 or raw_url.count("}") != 1:
+        raise ValueError("release upload URL has an unexpected template")
+    base_url = raw_url[: -len(template)]
     parsed = urlsplit(base_url)
     expected_path = f"/repos/{repo}/releases/{release_id}/assets"
     if (

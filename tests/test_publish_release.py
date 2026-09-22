@@ -246,6 +246,9 @@ def test_upload_asset_uses_validated_github_upload_url(
         "https://api.github.com/repos/acme/sdk/releases/7/assets{?name,label}",
         "https://uploads.github.com/repos/acme/sdk/releases/8/assets{?name,label}",
         "https://uploads.github.com/repos/acme/sdk/releases/7/assets?name=unexpected",
+        "https://uploads.github.com/repos/acme/sdk/releases/7/assets{not-a-template}",
+        "https://uploads.github.com/repos/acme/sdk/releases/7/assets{?name,label}trailing-garbage",
+        "https://uploads.github.com/repos/acme/sdk/releases/7/assets{?name}{?label}",
     ],
 )
 def test_upload_asset_rejects_untrusted_or_mismatched_upload_url(
