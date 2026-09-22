@@ -29,19 +29,27 @@ def _release(repo: str, tag: str) -> dict[str, object] | None:
     if "HTTP 404" not in error:
         raise RuntimeError("unable to query the GitHub release")
 
-    # GitHub does not resolve a draft by tag until it becomes public. Newly
-    # created drafts are returned first by the authenticated releases listing;
-    # recover only one exact tag and let the callers validate every other
-    # invariant (state, commit and artifacts) before it is reused.
-    drafts = _run("gh", "api", f"repos/{repo}/releases?per_page=100", capture=True)
+    # GitHub does not resolve a draft by tag until it becomes public. Recover
+    # only one exact tag across every authenticated releases page and let the
+    # callers validate every other invariant (state, commit and artifacts)
+    # before it is reused. --slurp keeps paginated JSON unambiguous.
+    drafts = _run(
+        "gh",
+        "api",
+        "--paginate",
+        "--slurp",
+        f"repos/{repo}/releases?per_page=100",
+        capture=True,
+    )
     if drafts.returncode != 0:
         raise RuntimeError("unable to list GitHub releases for draft recovery")
     document = json.loads(drafts.stdout)
-    if not isinstance(document, list):
+    if not isinstance(document, list) or any(not isinstance(page, list) for page in document):
         raise RuntimeError("GitHub releases listing has an unexpected shape")
     matches = [
         candidate
-        for candidate in document
+        for page in document
+        for candidate in page
         if isinstance(candidate, dict) and candidate.get("tag_name") == tag
     ]
     if len(matches) > 1:
