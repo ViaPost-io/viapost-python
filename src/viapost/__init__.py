@@ -26,6 +26,13 @@ from .types import (
     CreateTemplateRequest,
     CreateTemplateResponse,
     CreateWebhookRequest,
+    DeliverabilityMetrics,
+    DeliverabilityProblemDomain,
+    DeliverabilityProviderMetrics,
+    DeliverabilityProviderName,
+    DeliverabilityRejectionCause,
+    DeliverabilityRejections,
+    DeliverabilityVolumeDay,
     DNSRecord,
     DNSRecordList,
     Domain,
@@ -119,6 +126,13 @@ __all__ = [
     "CreateWebhookResponse",
     "DNSRecord",
     "DNSRecordList",
+    "DeliverabilityMetrics",
+    "DeliverabilityProblemDomain",
+    "DeliverabilityProviderMetrics",
+    "DeliverabilityProviderName",
+    "DeliverabilityRejectionCause",
+    "DeliverabilityRejections",
+    "DeliverabilityVolumeDay",
     "Domain",
     "DomainList",
     "DomainMetrics",
@@ -195,4 +209,4 @@ __all__ = [
     "WebhookReplayAccepted",
     "WebhookTestAccepted",
 ]
-__version__ = "0.3.0"
+__version__ = "0.4.0"

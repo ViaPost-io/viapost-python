@@ -2,7 +2,7 @@
 
 from typing import Any, Literal, TypeAlias
 
-from typing_extensions import Required, TypedDict
+from typing_extensions import NotRequired, Required, TypedDict
 
 JSONValue: TypeAlias = bool | int | float | str | list["JSONValue"] | dict[str, "JSONValue"] | None
 JSONObject: TypeAlias = dict[str, Any]
@@ -210,6 +210,49 @@ class DomainMetrics(TypedDict):
     clicked: int
 
 
+DeliverabilityProviderName: TypeAlias = Literal[
+    "gmail", "outlook", "yahoo", "apple_mail", "uol", "other"
+]
+DeliverabilityRejectionCause: TypeAlias = Literal[
+    "soft_bounce", "hard_bounce", "policy_block", "nonexistent_domain", "other"
+]
+
+
+class DeliverabilityProviderMetrics(TypedDict):
+    provider: DeliverabilityProviderName
+    total: int
+    delivered: int
+
+
+class DeliverabilityRejections(TypedDict):
+    soft_bounce: int
+    hard_bounce: int
+    policy_block: int
+    nonexistent_domain: int
+    other: int
+
+
+class DeliverabilityProblemDomain(TypedDict):
+    recipient_domain: str
+    sent: int
+    rejected: int
+    primary_reason: DeliverabilityRejectionCause
+
+
+class DeliverabilityVolumeDay(TypedDict):
+    date: str
+    sent: int
+    rejected: int
+
+
+class DeliverabilityMetrics(TypedDict):
+    providers: list[DeliverabilityProviderMetrics]
+    rejections: DeliverabilityRejections
+    previous_rejections: DeliverabilityRejections
+    problem_domains: list[DeliverabilityProblemDomain]
+    volume: list[DeliverabilityVolumeDay]
+
+
 class MetricsResponse(TypedDict):
     since: str
     until: str
@@ -217,6 +260,8 @@ class MetricsResponse(TypedDict):
     previous: MetricsSummary
     timeseries: list[MetricsTimeseriesDay]
     by_domain: list[DomainMetrics]
+    # Optional for compatibility with API deployments that predate the additive R04 field.
+    deliverability: NotRequired[DeliverabilityMetrics]
 
 
 class Domain(TypedDict):

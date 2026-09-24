@@ -262,7 +262,7 @@ class SyncHTTPClient:
         request_headers = httpx.Headers(headers)
         request_headers["Authorization"] = f"Bearer {self.config.api_key}"
         request_headers["Accept"] = accept
-        request_headers["User-Agent"] = "viapost-python/0.3.0"
+        request_headers["User-Agent"] = "viapost-python/0.4.0"
         if content_type is not None:
             request_headers["Content-Type"] = content_type
         effective_timeout = _effective_timeout(self.config, timeout)
@@ -333,7 +333,7 @@ class AsyncHTTPClient:
         request_headers = httpx.Headers(headers)
         request_headers["Authorization"] = f"Bearer {self.config.api_key}"
         request_headers["Accept"] = accept
-        request_headers["User-Agent"] = "viapost-python/0.3.0"
+        request_headers["User-Agent"] = "viapost-python/0.4.0"
         if content_type is not None:
             request_headers["Content-Type"] = content_type
         effective_timeout = _effective_timeout(self.config, timeout)

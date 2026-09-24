@@ -7,10 +7,10 @@ follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Synchronize the vendored public OpenAPI snapshot with the published contract, including contacts
-  import, tracking domains, audience segments, inbound configuration, and broadcast foundations.
-  This does not claim new high-level client methods for endpoints outside the typed resource layer.
-- Set the next public SDK version to 0.3.0 for the changed contract snapshot.
+- Prepare version 0.4.0 by synchronizing the vendored public OpenAPI snapshot with the published
+  contract. The typed `messages.metrics()` response now exposes additive deliverability metrics.
+  Its `deliverability` key remains optional in the Python type for compatibility with API
+  deployments that predate the field; existing methods and fields are unchanged.
 
 ## [0.2.0] - 2026-09-16
 
