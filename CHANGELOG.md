@@ -5,6 +5,8 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-21
+
 ### Changed
 
 - Synchronize the vendored public OpenAPI snapshot with the published contract, including contacts
