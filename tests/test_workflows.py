@@ -33,11 +33,29 @@ def test_release_artifact_is_sealed_before_isolated_consumer_install() -> None:
     consumer_script = steps[consumer]["run"]
     assert consumer_script.index("cp dist/*.whl") < consumer_script.index("--require-hashes")
     assert "--require-hashes -" in consumer_script
-    assert ".github/requirements/runtime.txt" in consumer_script
+    assert "requirements/runtime.lock.txt" in consumer_script
     assert "pip install --no-deps" in consumer_script
     assert "/tmp/viapost-consumer/artifacts/*.whl" in consumer_script
     assert "sha256sum -c" in consumer_script
     assert "pip install dist/*.whl" not in consumer_script
+
+
+def test_release_consumer_uses_a_pinned_hash_lock_not_runtime_constraints() -> None:
+    workflow = yaml.safe_load(Path(".github/workflows/release.yml").read_text())
+    steps = workflow["jobs"]["verify-and-build"]["steps"]
+    consumer = next(
+        step
+        for step in steps
+        if step.get("name") == "Test wheel in an isolated consumer environment"
+    )
+
+    consumer_script = consumer["run"]
+    assert "--require-hashes -r requirements/runtime.lock.txt" in consumer_script
+    assert "--require-hashes -r requirements/runtime.txt" not in consumer_script
+
+    runtime_lock = Path("requirements/runtime.lock.txt").read_text()
+    assert "==" in runtime_lock
+    assert "--hash=sha256:" in runtime_lock
 
 
 def test_release_toolchain_is_audited_and_publish_order_is_fail_closed() -> None:
