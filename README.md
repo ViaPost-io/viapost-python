@@ -13,7 +13,7 @@ published release / GitHub Releases é o canal principal de distribuição. Inst
 anexado à última release publicada:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.1.3/viapost-0.1.3-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.3.0/viapost-0.3.0-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -23,7 +23,7 @@ no PyPI:
 pip install viapost
 ```
 
-That release also includes the source distribution (`viapost-0.1.3.tar.gz`) and checksums. The
+That release also includes the source distribution (`viapost-0.3.0.tar.gz`) and checksums. The
 wheel is preferred because installation does not need to execute a build backend. GitHub also
 records build provenance attestations for both artifacts.
 
@@ -100,7 +100,7 @@ API key to a different host. Use the status page to subscribe, confirm, or unsub
 ## Reliability and errors / Confiabilidade e erros
 
 - Default timeout: 60 seconds; override globally or per request.
-- Maximum decoded JSON/error body: 10 MiB by default, enforced while streaming.
+- Maximum decoded JSON/error body: 8 MiB by default, enforced while streaming.
 - Raw RFC 822 message downloads have an independent 40 MiB default limit; configure
   `max_raw_response_bytes` up to the defensive 64 MiB ceiling without increasing JSON/error limits.
 - Automatic retries: only GET/HEAD responses with HTTP 429 or 5xx; default is two retries.
@@ -132,9 +132,9 @@ request headers from being reachable through exception chaining.
 
 The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yaml`. Its SHA-256 is
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
-Version 0.3.0 vendors the semantic snapshot published at
+Version 0.4.0 vendors the semantic snapshot published at
 `https://docs.viapost.io/openapi/public.yaml` with SHA-256
-`4296cf369c8a2b1e27f215fddc36dbafb4203aa35c509095df1048243b8da847`.
+`7c931b5a4a2a602d3c42341f2a70af9c49378600894b31adebfd333469b9e183`.
 
 ```bash
 python scripts/check_contract.py
@@ -158,7 +158,7 @@ pip-audit --requirement requirements/runtime.txt
 
 Release builds install a fully hash-locked toolchain from
 `.github/requirements/release.txt`; isolated artifact tests install runtime dependencies from the
-separate `.github/requirements/runtime.txt` hash lock and install the wheel with `--no-deps`.
+separate `requirements/runtime.lock.txt` hash lock and install the wheel with `--no-deps`.
 Checksums and immutable workflow artifacts are created before that consumer installation.
 Pushing a version tag (or manually dispatching its existing tag) verifies and builds first, creates
 provenance attestations, then strictly creates or recovers a matching draft without overwriting any
