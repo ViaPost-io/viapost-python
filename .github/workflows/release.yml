@@ -102,7 +102,7 @@ jobs:
           mkdir -p /tmp/viapost-consumer/artifacts
           cp dist/*.whl /tmp/viapost-consumer/artifacts/
           python -m venv /tmp/viapost-consumer/venv
-          /tmp/viapost-consumer/venv/bin/pip install --require-hashes -r .github/requirements/runtime.txt
+          /tmp/viapost-consumer/venv/bin/pip install --require-hashes -r requirements/runtime.lock.txt
           /tmp/viapost-consumer/venv/bin/pip install --no-deps /tmp/viapost-consumer/artifacts/*.whl
           /tmp/viapost-consumer/venv/bin/python -c 'from viapost import AsyncViaPost, ViaPost; assert ViaPost and AsyncViaPost'
           cd dist
