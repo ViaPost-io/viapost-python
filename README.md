@@ -23,7 +23,7 @@ no PyPI:
 pip install viapost
 ```
 
-That release also includes the source distribution (`viapost-0.1.3.tar.gz`) and checksums. The
+That release also includes the source distribution (`viapost-0.3.0.tar.gz`) and checksums. The
 wheel is preferred because installation does not need to execute a build backend. GitHub also
 records build provenance attestations for both artifacts.
 
@@ -158,7 +158,7 @@ pip-audit --requirement requirements/runtime.txt
 
 Release builds install a fully hash-locked toolchain from
 `.github/requirements/release.txt`; isolated artifact tests install runtime dependencies from the
-separate `.github/requirements/runtime.txt` hash lock and install the wheel with `--no-deps`.
+separate `requirements/runtime.lock.txt` hash lock and install the wheel with `--no-deps`.
 Checksums and immutable workflow artifacts are created before that consumer installation.
 Pushing a version tag (or manually dispatching its existing tag) verifies and builds first, creates
 provenance attestations, then strictly creates or recovers a matching draft without overwriting any
