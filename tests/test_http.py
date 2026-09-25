@@ -32,7 +32,7 @@ def test_sync_request_sends_auth_query_headers_and_default_timeout() -> None:
     assert isinstance(request, httpx.Request)
     assert request.headers["Authorization"] == "Bearer vp_test"
     assert request.headers["Accept"] == "application/json"
-    assert request.headers["User-Agent"] == "viapost-python/0.3.0"
+    assert request.headers["User-Agent"] == "viapost-python/0.4.0"
     assert request.url.params.get_list("status") == ["queued", "sent"]
     assert request.url.params["page"] == "2"
     assert "none" not in request.url.params
@@ -152,7 +152,7 @@ def test_protected_headers_cannot_be_overridden() -> None:
 
     assert observed[0].headers["Authorization"] == "Bearer real-key"
     assert observed[0].headers["Accept"] == "application/json"
-    assert observed[0].headers["User-Agent"] == "viapost-python/0.3.0"
+    assert observed[0].headers["User-Agent"] == "viapost-python/0.4.0"
 
 
 def test_api_error_redacts_echoed_credentials_and_sensitive_fields() -> None:

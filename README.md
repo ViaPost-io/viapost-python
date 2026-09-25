@@ -132,9 +132,9 @@ request headers from being reachable through exception chaining.
 
 The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yaml`. Its SHA-256 is
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
-Version 0.3.0 vendors the semantic snapshot published at
+Version 0.4.0 vendors the semantic snapshot published at
 `https://docs.viapost.io/openapi/public.yaml` with SHA-256
-`4296cf369c8a2b1e27f215fddc36dbafb4203aa35c509095df1048243b8da847`.
+`7c931b5a4a2a602d3c42341f2a70af9c49378600894b31adebfd333469b9e183`.
 
 ```bash
 python scripts/check_contract.py
@@ -158,7 +158,7 @@ pip-audit --requirement requirements/runtime.txt
 
 Release builds install a fully hash-locked toolchain from
 `.github/requirements/release.txt`; isolated artifact tests install runtime dependencies from the
-separate `.github/requirements/runtime.txt` hash lock and install the wheel with `--no-deps`.
+separate `requirements/runtime.lock.txt` hash lock and install the wheel with `--no-deps`.
 Checksums and immutable workflow artifacts are created before that consumer installation.
 Pushing a version tag (or manually dispatching its existing tag) verifies and builds first, creates
 provenance attestations, then strictly creates or recovers a matching draft without overwriting any

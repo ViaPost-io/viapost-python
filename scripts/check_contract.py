@@ -131,7 +131,7 @@ def _read_limited(response: _ReadableResponse) -> bytes:
 def fetch_contract(source: str, *, opener: _Opener | None = None) -> str:
     validate_contract_url(source)
     active_opener = opener or cast(_Opener, build_opener(ApprovedHTTPSRedirectHandler()))
-    request = Request(source, headers={"User-Agent": "viapost-python-contract-check/0.3.0"})
+    request = Request(source, headers={"User-Agent": "viapost-python-contract-check/0.4.0"})
     with active_opener.open(request, timeout=15) as response:
         validate_contract_url(response.geturl())
         return _read_limited(response).decode("utf-8")

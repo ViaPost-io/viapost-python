@@ -6,7 +6,13 @@ from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
 
-from viapost import __version__
+from viapost import (
+    DeliverabilityMetrics,
+    DeliverabilityProviderMetrics,
+    DeliverabilityRejections,
+    MetricsResponse,
+    __version__,
+)
 from viapost.contract import OPENAPI_SHA256, OPENAPI_SOURCE_URL, read_openapi
 
 
@@ -21,14 +27,14 @@ def test_public_version_matches_project_metadata() -> None:
     version = re.search(r'^version = "([^"]+)"$', project, re.MULTILINE)
 
     assert version is not None
-    assert __version__ == version.group(1) == "0.3.0"
+    assert __version__ == version.group(1) == "0.4.0"
 
 
 def test_contract_release_bumps_the_previous_public_version() -> None:
-    previous_release = (0, 2, 0)
+    previous_release = (0, 3, 0)
     current_release = tuple(int(part) for part in __version__.split("."))
 
-    assert current_release == (0, 3, 0)
+    assert current_release == (0, 4, 0)
     assert current_release > previous_release
 
 
@@ -49,3 +55,44 @@ def test_vendored_openapi_contains_the_current_authenticated_surface() -> None:
         "/v1/segments",
         "/v1/segments/preview",
     } <= document["paths"].keys()
+
+
+def test_vendored_openapi_includes_the_r04_deliverability_contract() -> None:
+    document = yaml.safe_load(read_openapi())
+    event_send = document["paths"]["/v1/events/send"]["post"]
+    metrics = document["components"]["schemas"]["MetricsResponse"]
+
+    assert "Idempotency-Key" in {
+        parameter["name"] for parameter in event_send["parameters"] if "name" in parameter
+    }
+    assert "deliverability" in metrics["required"]
+    assert metrics["properties"]["deliverability"] == {
+        "$ref": "#/components/schemas/DeliverabilityMetrics"
+    }
+
+
+def test_generated_metrics_types_expose_r04_deliverability_without_breaking_old_consumers() -> None:
+    assert MetricsResponse.__required_keys__ == {
+        "since",
+        "until",
+        "current",
+        "previous",
+        "timeseries",
+        "by_domain",
+    }
+    assert MetricsResponse.__optional_keys__ == {"deliverability"}
+    assert DeliverabilityMetrics.__required_keys__ == {
+        "providers",
+        "rejections",
+        "previous_rejections",
+        "problem_domains",
+        "volume",
+    }
+    assert DeliverabilityProviderMetrics.__required_keys__ == {"provider", "total", "delivered"}
+    assert DeliverabilityRejections.__required_keys__ == {
+        "soft_bounce",
+        "hard_bounce",
+        "policy_block",
+        "nonexistent_domain",
+        "other",
+    }
