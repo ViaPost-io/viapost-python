@@ -5,6 +5,8 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-21
+
 ### Changed
 
 - Prepare version 0.4.0 by synchronizing the vendored public OpenAPI snapshot with the published

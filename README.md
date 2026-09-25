@@ -100,7 +100,7 @@ API key to a different host. Use the status page to subscribe, confirm, or unsub
 ## Reliability and errors / Confiabilidade e erros
 
 - Default timeout: 60 seconds; override globally or per request.
-- Maximum decoded JSON/error body: 10 MiB by default, enforced while streaming.
+- Maximum decoded JSON/error body: 8 MiB by default, enforced while streaming.
 - Raw RFC 822 message downloads have an independent 40 MiB default limit; configure
   `max_raw_response_bytes` up to the defensive 64 MiB ceiling without increasing JSON/error limits.
 - Automatic retries: only GET/HEAD responses with HTTP 429 or 5xx; default is two retries.
