@@ -29,6 +29,8 @@ jobs:
       - run: ruff format --check .
       - run: mypy
       - run: pytest --cov=viapost --cov-report=term-missing
+      - name: Verify README against published GitHub release assets
+        run: python scripts/check_readme_release.py
       - run: python -m build
       - run: twine check dist/*
       - name: Audit runtime dependencies only
