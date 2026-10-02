@@ -13,7 +13,7 @@ published release / GitHub Releases é o canal principal de distribuição. Inst
 anexado à última release publicada:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.3.0/viapost-0.3.0-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.4.0/viapost-0.4.0-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -23,7 +23,7 @@ no PyPI:
 pip install viapost
 ```
 
-That release also includes the source distribution (`viapost-0.3.0.tar.gz`) and checksums. The
+That release also includes the source distribution (`viapost-0.4.0.tar.gz`) and checksums. The
 wheel is preferred because installation does not need to execute a build backend. GitHub also
 records build provenance attestations for both artifacts.
 
@@ -132,9 +132,9 @@ request headers from being reachable through exception chaining.
 
 The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yaml`. Its SHA-256 is
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
-Version 0.4.0 vendors the semantic snapshot published at
+The current source tree vendors the semantic snapshot published at
 `https://docs.viapost.io/openapi/public.yaml` with SHA-256
-`7c931b5a4a2a602d3c42341f2a70af9c49378600894b31adebfd333469b9e183`.
+`14b629c986087e273923791af3b54792426cf70c943c176ccd41285e7c20aad0`.
 
 ```bash
 python scripts/check_contract.py
