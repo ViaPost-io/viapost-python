@@ -13,7 +13,7 @@ published release / GitHub Releases é o canal principal de distribuição. Inst
 anexado à última release publicada:
 
 ```bash
-pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.3.0/viapost-0.3.0-py3-none-any.whl
+pip install https://github.com/ViaPost-io/viapost-python/releases/download/v0.4.0/viapost-0.4.0-py3-none-any.whl
 ```
 
 When that version is explicitly published to PyPI / Quando a versão for publicada explicitamente
@@ -23,7 +23,7 @@ no PyPI:
 pip install viapost
 ```
 
-That release also includes the source distribution (`viapost-0.3.0.tar.gz`) and checksums. The
+That release also includes the source distribution (`viapost-0.4.0.tar.gz`) and checksums. The
 wheel is preferred because installation does not need to execute a build backend. GitHub also
 records build provenance attestations for both artifacts.
 
