@@ -5,6 +5,13 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-26
+
+### Changed
+
+- Publish the typed deliverability metrics and synchronized public OpenAPI contract prepared in
+  version 0.3.0.
+
 ## [0.3.0] - 2026-09-21
 
 ### Changed
@@ -66,7 +73,8 @@ follow [Semantic Versioning](https://semver.org/).
 - Typed errors, safe URL/path handling, bounded responses, conservative retries, and idempotent send.
 - Verifiable OpenAPI snapshot and GitHub/PyPI release pipelines.
 
-[Unreleased]: https://github.com/ViaPost-io/viapost-python/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ViaPost-io/viapost-python/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ViaPost-io/viapost-python/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ViaPost-io/viapost-python/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/ViaPost-io/viapost-python/compare/v0.1.2...v0.1.3
