@@ -5,6 +5,11 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Synchronize the vendored public OpenAPI snapshot with the published tracking status
+  `verified_at` contract.
+
 ## [0.4.0] - 2026-09-26
 
 ### Changed
