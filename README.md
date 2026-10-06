@@ -134,7 +134,10 @@ The wheel includes the exact public OpenAPI 3.1 snapshot in `viapost/openapi.yam
 exposed as `viapost.contract.OPENAPI_SHA256`; `viapost.contract.read_openapi()` reads the snapshot.
 The current source tree vendors the semantic snapshot published at
 `https://docs.viapost.io/openapi/public.yaml` with SHA-256
-`d42e0c5d732780b743aead543be32d6b474631dec4fd0c1c8838e1416216bc4e`.
+`96f2fa883334ff15400f51f43bee917e690030e8f3e31b1d8dcdcca2782ab77b`.
+
+The SaaS onboarding recipe endpoint in this snapshot is restricted to a browser session with CSRF
+and expected-tenant headers; it is intentionally not exposed by the API-key SDK client.
 
 ```bash
 python scripts/check_contract.py
