@@ -14,6 +14,7 @@ from viapost import (
     __version__,
 )
 from viapost.contract import OPENAPI_SHA256, OPENAPI_SOURCE_URL, read_openapi
+from viapost.resources import AsyncAutomationsResource, AutomationsResource
 
 
 def test_vendored_openapi_snapshot_is_verifiable() -> None:
@@ -69,6 +70,29 @@ def test_vendored_openapi_includes_the_r04_deliverability_contract() -> None:
     assert metrics["properties"]["deliverability"] == {
         "$ref": "#/components/schemas/DeliverabilityMetrics"
     }
+
+
+def test_session_only_onboarding_recipe_is_documented_but_not_exposed_by_api_key_sdk() -> None:
+    document = yaml.safe_load(read_openapi())
+    recipe = document["paths"]["/v1/automations/{id}/recipes/saas-onboarding"]["patch"]
+
+    assert recipe["security"] == [{"sessionCookie": []}]
+    assert {parameter.get("name") for parameter in recipe["parameters"]} >= {
+        "id",
+        "X-ViaPost-Expected-Tenant-ID",
+    }
+    assert any(
+        parameter.get("$ref") == "#/components/parameters/RequiredCsrfHeader"
+        for parameter in recipe["parameters"]
+    )
+    assert document["components"]["parameters"]["RequiredCsrfHeader"]["name"] == "X-ViaPost-Csrf"
+    request = document["components"]["schemas"]["MaterializeSaasOnboardingRecipeRequest"]
+    assert set(request["required"]) == {"event_id", "template_id", "sender_domain_id"}
+    assert recipe["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/Automation"
+    }
+    assert not hasattr(AutomationsResource, "materialize_saas_onboarding_recipe")
+    assert not hasattr(AsyncAutomationsResource, "materialize_saas_onboarding_recipe")
 
 
 def test_generated_metrics_types_expose_r04_deliverability_without_breaking_old_consumers() -> None:
