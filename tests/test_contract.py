@@ -3,14 +3,22 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
+from typing import get_args
 
 import yaml  # type: ignore[import-untyped]
 
 from viapost import (
+    CreateWebhookRequest,
     DeliverabilityMetrics,
     DeliverabilityProviderMetrics,
     DeliverabilityRejections,
     MetricsResponse,
+    UpdateWebhookRequest,
+    WebhookDeliveryAttempt,
+    WebhookDeliverySummary,
+    WebhookEndpoint,
+    WebhookEventType,
+    WebhookList,
     __version__,
 )
 from viapost.contract import OPENAPI_SHA256, OPENAPI_SOURCE_URL, read_openapi
@@ -21,6 +29,22 @@ def test_vendored_openapi_snapshot_is_verifiable() -> None:
     source = read_openapi()
     assert source.startswith("openapi: 3.1.1\n")
     assert hashlib.sha256(source.encode()).hexdigest() == OPENAPI_SHA256
+
+
+def test_existing_webhook_types_follow_the_public_contract() -> None:
+    schemas = yaml.safe_load(read_openapi())["components"]["schemas"]
+    for name, typed in (
+        ("WebhookEndpoint", WebhookEndpoint),
+        ("WebhookDeliverySummary", WebhookDeliverySummary),
+        ("WebhookDeliveryAttempt", WebhookDeliveryAttempt),
+        ("WebhookList", WebhookList),
+        ("CreateWebhookRequest", CreateWebhookRequest),
+        ("UpdateWebhookRequest", UpdateWebhookRequest),
+    ):
+        assert typed.__required_keys__ == frozenset(schemas[name].get("required", []))
+        expected_optional = frozenset(schemas[name]["properties"]) - typed.__required_keys__
+        assert typed.__optional_keys__ == expected_optional
+    assert set(get_args(WebhookEventType)) == set(schemas["WebhookSubscribableEventType"]["enum"])
 
 
 def test_public_version_matches_project_metadata() -> None:

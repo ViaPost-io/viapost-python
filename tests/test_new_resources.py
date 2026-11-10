@@ -219,6 +219,7 @@ async def test_async_new_resources_match_sync_resource_methods() -> None:
         ("update", {"expected_version": 1}, "at least one field"),
         ("update", {"expected_version": 1, "event_types": []}, "at least one item"),
         ("update", {"expected_version": 1, "max_attempts": 21}, "between 1 and 20"),
+        ("update", {"expected_version": 1, "url": "file:///tmp/hook"}, "HTTPS"),
         (
             "release",
             {"expected_version": 1, "acknowledge": False, "justification": "Customer request"},

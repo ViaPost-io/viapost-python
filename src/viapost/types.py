@@ -392,28 +392,36 @@ class TemplateAssetPolicy(TypedDict):
 
 
 WebhookEventType: TypeAlias = Literal[
-    "queued",
     "sent",
     "delivered",
     "deferred",
-    "soft_bounce",
     "hard_bounce",
-    "complaint",
     "open",
     "click",
     "unsubscribe",
-    "rejected",
     "failed",
-    "inbound.received",
+    "suppressed",
 ]
-WebhookDeliveryEventType: TypeAlias = WebhookEventType | Literal["webhook.test"]
+# Delivery records may include historical event types beyond the current
+# subscribable set, including webhook.test.
+WebhookDeliveryEventType: TypeAlias = str
 WebhookDeliveryStatus: TypeAlias = Literal["pending", "delivered", "failed"]
+
+
+class WebhookLastDelivery(TypedDict):
+    delivery_id: str
+    state: str
+    status: WebhookDeliveryStatus
+    created_at: str
+    updated_at: str
+    response_code: int | None
+    duration_ms: int | None
 
 
 class WebhookEndpoint(TypedDict):
     id: str
     url: str
-    event_types: list[WebhookEventType]
+    event_types: list[str]
     enabled: bool
     max_attempts: int
     consecutive_failures: int
@@ -422,15 +430,24 @@ class WebhookEndpoint(TypedDict):
     version: int
     created_at: str
     updated_at: str
+    name: str
+    payload_version: Literal["1"]
+    last_delivery: WebhookLastDelivery | None
+    description: NotRequired[str | None]
 
 
-class WebhookList(TypedDict):
-    webhooks: list[WebhookEndpoint]
+class WebhookList(TypedDict, total=False):
+    webhooks: Required[list[WebhookEndpoint]]
+    next_cursor: str
 
 
-class CreateWebhookRequest(TypedDict):
-    url: str
-    event_types: list[WebhookEventType]
+class CreateWebhookRequest(TypedDict, total=False):
+    url: Required[str]
+    event_types: Required[list[WebhookEventType]]
+    name: str
+    description: str
+    enabled: bool
+    max_attempts: int
 
 
 class CreateWebhookResponsePayload(TypedDict):
@@ -443,9 +460,14 @@ class UpdateWebhookRequest(TypedDict, total=False):
     enabled: bool
     event_types: list[WebhookEventType]
     max_attempts: int
+    name: str
+    description: str
+    url: str
 
 
 class WebhookDeliverySummary(TypedDict):
+    endpoint_id: str
+    state: Literal["queued", "processing", "retry_scheduled", "delivered", "failed", "cancelled"]
     delivery_id: str
     event_type: WebhookDeliveryEventType
     status: WebhookDeliveryStatus
@@ -487,6 +509,21 @@ class WebhookDeliveryAttempt(TypedDict):
     duration_ms: int | None
     attempted_at: str
     next_retry_at: str | None
+    response_hash_sha256: str | None
+    response_size_bytes: int | None
+    error_class: (
+        Literal[
+            "network",
+            "timeout",
+            "tls",
+            "blocked_destination",
+            "http_3xx",
+            "http_4xx",
+            "http_5xx",
+            "cancelled",
+        ]
+        | None
+    )
 
 
 class WebhookDeliveryDetail(WebhookDeliverySummary):

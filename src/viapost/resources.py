@@ -123,8 +123,7 @@ def _validate_preview(value: PreviewTemplateRequest) -> None:
         raise ValueError("variables must contain at most 100 properties")
 
 
-def _validate_webhook(value: CreateWebhookRequest) -> None:
-    raw_url = value.get("url", "")
+def _validate_webhook_url(raw_url: str) -> None:
     try:
         parsed = urlsplit(raw_url)
         hostname = parsed.hostname
@@ -165,6 +164,10 @@ def _validate_webhook(value: CreateWebhookRequest) -> None:
             )
     if unsafe:
         raise ValueError("url must be a public absolute HTTPS URL without credentials or fragment")
+
+
+def _validate_webhook(value: CreateWebhookRequest) -> None:
+    _validate_webhook_url(value.get("url", ""))
     if not value.get("event_types"):
         raise ValueError("event_types must contain at least one item")
 
@@ -178,6 +181,8 @@ def _validate_webhook_update(value: UpdateWebhookRequest) -> None:
         raise ValueError("event_types must contain at least one item")
     if "max_attempts" in value and not 1 <= value["max_attempts"] <= 20:
         raise ValueError("max_attempts must be between 1 and 20")
+    if "url" in value:
+        _validate_webhook_url(value["url"])
 
 
 def _idempotency_headers(value: str) -> dict[str, str]:
