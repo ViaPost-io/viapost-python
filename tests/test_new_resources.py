@@ -41,6 +41,47 @@ def test_new_request_typed_dicts_match_the_openapi_required_fields() -> None:
     assert UpdateWebhookRequest.__required_keys__ == frozenset({"expected_version"})
 
 
+def test_sync_webhook_list_can_follow_next_cursor() -> None:
+    observed: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed.append(request)
+        if request.url.params.get("cursor"):
+            return httpx.Response(200, json={"webhooks": []})
+        return httpx.Response(200, json={"webhooks": [], "next_cursor": "page-2"})
+
+    with ViaPost(api_key="vp_test", transport=httpx.MockTransport(handler)) as client:
+        first = client.webhooks.list(limit=1)
+        second = client.webhooks.list(cursor=first["next_cursor"], limit=1)
+
+    assert "next_cursor" not in second
+    assert [str(request.url) for request in observed] == [
+        "https://api.viapost.io/v1/webhooks?limit=1",
+        "https://api.viapost.io/v1/webhooks?cursor=page-2&limit=1",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_webhook_list_can_follow_next_cursor() -> None:
+    observed: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        observed.append(request)
+        if request.url.params.get("cursor"):
+            return httpx.Response(200, json={"webhooks": []})
+        return httpx.Response(200, json={"webhooks": [], "next_cursor": "page-2"})
+
+    async with AsyncViaPost(api_key="vp_test", transport=httpx.MockTransport(handler)) as client:
+        first = await client.webhooks.list(limit=1)
+        second = await client.webhooks.list(cursor=first["next_cursor"], limit=1)
+
+    assert "next_cursor" not in second
+    assert [str(request.url) for request in observed] == [
+        "https://api.viapost.io/v1/webhooks?limit=1",
+        "https://api.viapost.io/v1/webhooks?cursor=page-2&limit=1",
+    ]
+
+
 def test_sync_webhook_secret_results_require_explicit_access_and_redact_common_rendering() -> None:
     endpoint = _webhook_endpoint()
     endpoint["debug"] = {"token": "endpoint-token"}

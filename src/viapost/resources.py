@@ -596,8 +596,21 @@ class WebhooksResource:
     def __init__(self, http: SyncHTTPClient) -> None:
         self._http = http
 
-    def list(self, *, timeout: float | None = None) -> WebhookList:
-        return cast(WebhookList, self._http.request("GET", "/v1/webhooks", timeout=timeout))
+    def list(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int | None = None,
+        timeout: float | None = None,
+    ) -> WebhookList:
+        query = {
+            key: value
+            for key, value in {"cursor": cursor, "limit": limit}.items()
+            if value is not None
+        }
+        return cast(
+            WebhookList, self._http.request("GET", "/v1/webhooks", query=query, timeout=timeout)
+        )
 
     def create(
         self, input: CreateWebhookRequest, *, timeout: float | None = None
@@ -1183,8 +1196,22 @@ class AsyncWebhooksResource:
     def __init__(self, http: AsyncHTTPClient) -> None:
         self._http = http
 
-    async def list(self, *, timeout: float | None = None) -> WebhookList:
-        return cast(WebhookList, await self._http.request("GET", "/v1/webhooks", timeout=timeout))
+    async def list(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int | None = None,
+        timeout: float | None = None,
+    ) -> WebhookList:
+        query = {
+            key: value
+            for key, value in {"cursor": cursor, "limit": limit}.items()
+            if value is not None
+        }
+        return cast(
+            WebhookList,
+            await self._http.request("GET", "/v1/webhooks", query=query, timeout=timeout),
+        )
 
     async def create(
         self, input: CreateWebhookRequest, *, timeout: float | None = None
