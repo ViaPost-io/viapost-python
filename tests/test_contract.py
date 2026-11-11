@@ -52,14 +52,14 @@ def test_public_version_matches_project_metadata() -> None:
     version = re.search(r'^version = "([^"]+)"$', project, re.MULTILINE)
 
     assert version is not None
-    assert __version__ == version.group(1) == "0.4.0"
+    assert __version__ == version.group(1) == "0.5.0"
 
 
 def test_contract_release_bumps_the_previous_public_version() -> None:
     previous_release = (0, 3, 0)
     current_release = tuple(int(part) for part in __version__.split("."))
 
-    assert current_release == (0, 4, 0)
+    assert current_release == (0, 5, 0)
     assert current_release > previous_release
 
 
