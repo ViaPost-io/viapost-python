@@ -3,14 +3,22 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
+from typing import get_args
 
 import yaml  # type: ignore[import-untyped]
 
 from viapost import (
+    CreateWebhookRequest,
     DeliverabilityMetrics,
     DeliverabilityProviderMetrics,
     DeliverabilityRejections,
     MetricsResponse,
+    UpdateWebhookRequest,
+    WebhookDeliveryAttempt,
+    WebhookDeliverySummary,
+    WebhookEndpoint,
+    WebhookEventType,
+    WebhookList,
     __version__,
 )
 from viapost.contract import OPENAPI_SHA256, OPENAPI_SOURCE_URL, read_openapi
@@ -23,19 +31,35 @@ def test_vendored_openapi_snapshot_is_verifiable() -> None:
     assert hashlib.sha256(source.encode()).hexdigest() == OPENAPI_SHA256
 
 
+def test_existing_webhook_types_follow_the_public_contract() -> None:
+    schemas = yaml.safe_load(read_openapi())["components"]["schemas"]
+    for name, typed in (
+        ("WebhookEndpoint", WebhookEndpoint),
+        ("WebhookDeliverySummary", WebhookDeliverySummary),
+        ("WebhookDeliveryAttempt", WebhookDeliveryAttempt),
+        ("WebhookList", WebhookList),
+        ("CreateWebhookRequest", CreateWebhookRequest),
+        ("UpdateWebhookRequest", UpdateWebhookRequest),
+    ):
+        assert typed.__required_keys__ == frozenset(schemas[name].get("required", []))
+        expected_optional = frozenset(schemas[name]["properties"]) - typed.__required_keys__
+        assert typed.__optional_keys__ == expected_optional
+    assert set(get_args(WebhookEventType)) == set(schemas["WebhookSubscribableEventType"]["enum"])
+
+
 def test_public_version_matches_project_metadata() -> None:
     project = Path("pyproject.toml").read_text(encoding="utf-8")
     version = re.search(r'^version = "([^"]+)"$', project, re.MULTILINE)
 
     assert version is not None
-    assert __version__ == version.group(1) == "0.4.0"
+    assert __version__ == version.group(1) == "0.5.0"
 
 
 def test_contract_release_bumps_the_previous_public_version() -> None:
     previous_release = (0, 3, 0)
     current_release = tuple(int(part) for part in __version__.split("."))
 
-    assert current_release == (0, 4, 0)
+    assert current_release == (0, 5, 0)
     assert current_release > previous_release
 
 

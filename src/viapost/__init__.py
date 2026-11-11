@@ -98,6 +98,7 @@ from .types import (
     WebhookDeliverySummary,
     WebhookEndpoint,
     WebhookEventType,
+    WebhookLastDelivery,
     WebhookList,
     WebhookOperationAccepted,
     WebhookPayloadRedacted,
@@ -203,10 +204,11 @@ __all__ = [
     "WebhookDeliverySummary",
     "WebhookEndpoint",
     "WebhookEventType",
+    "WebhookLastDelivery",
     "WebhookList",
     "WebhookOperationAccepted",
     "WebhookPayloadRedacted",
     "WebhookReplayAccepted",
     "WebhookTestAccepted",
 ]
-__version__ = "0.4.0"
+__version__ = "0.5.0"
